@@ -458,12 +458,12 @@ def export_lulc_from_gee(master):
 
     # ── Initialise Earth Engine ────────────────────────────────────────────────
     try:
-        ee.Initialize()
+        ee.Initialize(project='gssha-480613')
         log("  Earth Engine initialized")
     except Exception:
         try:
             ee.Authenticate()
-            ee.Initialize()
+            ee.Initialize(project='gssha-480613')
             log("  Earth Engine authenticated + initialized")
         except Exception as e:
             log(f"  EE init failed: {e}", "ERROR")
@@ -496,7 +496,7 @@ def export_lulc_from_gee(master):
     # ── Load asset and select band ─────────────────────────────────────────────
     # Assumption: the LULC image has a single band named "b1".
     # Adjust the select() call if the asset uses a different band name.
-    lulc_image = ee.Image(GEE_ASSET).select("b1")
+    lulc_image = ee.Image(GEE_ASSET).select("predicted_label")
     log(f"  Asset: {GEE_ASSET}")
 
     # ── Download via geemap (handles chunking internally) ─────────────────────
