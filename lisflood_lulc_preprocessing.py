@@ -6,8 +6,8 @@ Generates all fraction maps and land-cover-dependent maps for LISFLOOD.
 Source  : GEE asset → projects/corestack-datasets/assets/datasets/
           LULC_v3_river_basin/pan_india_lulc_v3_2024_2025
 Bounding: area.tif  (same raster used as DEM reference grid)
-CRS     : EPSG:32645  (UTM Zone 45N)
-Res     : 30 m
+CRS     : auto-detected from ROI shapefile (see pipeline_config.py)
+Res     : pipeline_config.RESOLUTION_M metres
 
 LEGEND (GEE asset classes)
   0  Background
@@ -67,19 +67,23 @@ warnings.filterwarnings("ignore")
 from pathlib import Path
 
 # =============================================================================
-#  SETTINGS — edit this section only
+#  SETTINGS — edit pipeline_config.py to change ROI / CRS / paths
 # =============================================================================
 
-AREA_TIF        = "./area.tif"          # reference / bounding raster (master grid)
-OUTPUT_DIR      = "./lisflood_lulc"
-TARGET_CRS      = "EPSG:32645"
-RESOLUTION_M    = 30
+import pipeline_config as _cfg
+
+AREA_TIF        = _cfg.AREA_TIF
+OUTPUT_DIR      = _cfg.OUTPUT_LULC
+RESOLUTION_M    = _cfg.RESOLUTION_M
+
+# CRS is resolved at import time (auto-detects UTM zone if TARGET_CRS=None)
+TARGET_CRS      = _cfg.resolve_crs()
 
 # GEE asset
 GEE_ASSET       = ("projects/corestack-datasets/assets/datasets/"
                    "LULC_v3_river_basin/pan_india_lulc_v3_2024_2025")
 GEE_SCALE       = 30          # export scale (m) — matches DEM resolution
-GEE_CRS         = "EPSG:32645"
+GEE_CRS         = TARGET_CRS
 
 # Intermediate file path (GEE export -> local)
 LULC_RAW_TIF    = os.path.join(OUTPUT_DIR, "raw", "lulc_raw.tif")
@@ -458,12 +462,12 @@ def export_lulc_from_gee(master):
 
     # ── Initialise Earth Engine ────────────────────────────────────────────────
     try:
-        ee.Initialize(project='gssha-480613')
+        ee.Initialize(project=_cfg.GEE_PROJECT)
         log("  Earth Engine initialized")
     except Exception:
         try:
             ee.Authenticate()
-            ee.Initialize(project='gssha-480613')
+            ee.Initialize(project=_cfg.GEE_PROJECT)
             log("  Earth Engine authenticated + initialized")
         except Exception as e:
             log(f"  EE init failed: {e}", "ERROR")
@@ -630,12 +634,27 @@ def build_fraction_maps(lulc_arr, mask_arr, master):
         "fracother":  make_frac(OTHER_CLASSES,  "fracother"),
     }
 
-    # Sanity: sum of fractions inside mask must be <= 1.0 per pixel
-    total   = sum(np.where(inside, fracs[k], 0.0) for k in fracs)
-    max_sum = float(total[inside].max()) if inside.any() else 0.0
-    log(f"  Max fraction sum per pixel: {max_sum:.4f}  (must be <= 1.0)")
+    # Sanity: sum of fractions inside mask must be exactly 1.0 per pixel
+    sum_fracs = sum(np.where(inside, fracs[k], 0.0) for k in fracs)
+    
+    max_sum = float(sum_fracs[inside].max()) if inside.any() else 0.0
+    min_sum = float(sum_fracs[inside].min()) if inside.any() else 0.0
+    
+    log(f"  Max fraction sum per pixel: {max_sum:.4f}")
+    log(f"  Min fraction sum per pixel: {min_sum:.4f}")
+    
     if max_sum > 1.001:
-        log("  Fraction sum > 1.0 — review class groupings!", "WARN")
+        log("  FATAL: Fraction sum > 1.0 — review class groupings!", "ERROR")
+        
+    if min_sum < 0.999:
+        log("  ⚠ Missing data gaps detected inside mask! Patching empty pixels into 'fracother' to satisfy LISFLOOD mass balance.", "WARN")
+        # Identify pixels inside the mask that have a sum of 0
+        empty_mask = inside & (sum_fracs < 0.01)
+        # Patch fracother to 1.0 for these empty holes
+        fracs["fracother"][empty_mask] = 1.0
+        
+        patched_sum = sum(np.where(inside, fracs[k], 0.0) for k in fracs)
+        log(f"  ✔ Min fraction sum patched to: {float(patched_sum[inside].min()):.4f}")
 
     return fracs
 

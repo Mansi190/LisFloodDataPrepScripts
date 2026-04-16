@@ -44,41 +44,23 @@ warnings.filterwarnings("ignore")
 from pathlib import Path
 
 # ─────────────────────────────────────────────────────────────────────────────
-#   ★  SETTINGS — only edit this section
+#   ★  SETTINGS — edit pipeline_config.py to change ROI / CRS / paths
 # ─────────────────────────────────────────────────────────────────────────────
 
-# ── WATERSHED SOURCE ──────────────────────────────────────────────────────────
-# Choose ONE of three options:
-#
-#   "HYDROSHEDS"  → script downloads a pre-made watershed from HydroSHEDS
-#                   (~1000 ha basin inside Araria district)
-#
-#   "OWN_FILE"    → you provide your own shapefile or GeoPackage
-#                   set OWN_WATERSHED_PATH to your file path below
-#
-#   "SYNTHETIC"   → uses a built-in test polygon (no download needed)
-#                   useful for testing the pipeline without any data
+import pipeline_config as _cfg
 
-WATERSHED_SOURCE = "OWN_FILE"   # ← change this to switch mode
+WATERSHED_SOURCE   = _cfg.WATERSHED_SOURCE
+OWN_WATERSHED_PATH = _cfg.ROI_SHAPEFILE
+OUTPUT_DIR         = _cfg.OUTPUT_TOPO
+RESOLUTION_M       = _cfg.RESOLUTION_M
 
-# ── If WATERSHED_SOURCE = "OWN_FILE" ─────────────────────────────────────────
-# Set the path to your shapefile (.shp) or GeoPackage (.gpkg) or GeoJSON (.geojson)
-# Rules:
-#   • The file must contain exactly ONE polygon (your watershed boundary)
-#   • It can be in ANY coordinate system — the script reprojects it automatically
-#   • If the file has multiple features, only the FIRST one is used
-#     (dissolve them in QGIS first if you want to merge multiple polygons)
-OWN_WATERSHED_PATH = "./ArariaShapefile.shp"
+# CRS is resolved at import time (auto-detects UTM zone if TARGET_CRS=None)
+TARGET_CRS         = _cfg.resolve_crs()
 
-# ── HydroSHEDS options (only used when WATERSHED_SOURCE = "HYDROSHEDS") ──────
-ARARIA_BBOX     = [87.0, 25.8, 88.0, 26.6]   # [west, south, east, north]
-TARGET_AREA_HA  = 1000                         # target watershed size in hectares
-MAX_CANDIDATES  = 5                            # how many HydroSHEDS options to show
-
-# ── Common settings ───────────────────────────────────────────────────────────
-OUTPUT_DIR      = "./lisflood_outputs"
-TARGET_CRS      = "EPSG:32645"                 # UTM Zone 45N — correct for Bihar
-RESOLUTION_M    = 30                           # 30m matches native SRTM resolution
+# HydroSHEDS options (used only when WATERSHED_SOURCE = "HYDROSHEDS")
+ARARIA_BBOX     = _cfg.HYDROSHEDS_BBOX
+TARGET_AREA_HA  = _cfg.HYDROSHEDS_TARGET_HA
+MAX_CANDIDATES  = _cfg.HYDROSHEDS_MAX_CANDS
 
 # ─────────────────────────────────────────────────────────────────────────────
 #   HELPERS
@@ -214,6 +196,11 @@ def get_hydrosheds_watershed():
         log("Watershed already exists, loading.")
         import geopandas as gpd
         gdf  = gpd.read_file(gpkg_out)
+        # FIX: old cached files may have been written in UTM (EPSG:32645).
+        # rasterize_watershed() now always expects WGS84 — force it here.
+        if gdf.crs is None or gdf.crs.to_epsg() != 4326:
+            log("  Cached watershed not in WGS84 — reprojecting to EPSG:4326 ...", "WARN")
+            gdf = gdf.to_crs("EPSG:4326")
         geom = gdf.iloc[0].geometry
         area = gdf.iloc[0]["area_ha"]
         log(f"  Loaded: {area:.0f} ha")
@@ -302,6 +289,7 @@ def _print_hydrosheds_instructions(raw_dir):
 def _make_synthetic_watershed(gpkg_out, shp_out):
     import geopandas as gpd
     from shapely.geometry import Polygon
+    # Coordinates are in degrees (WGS84) — CRS must be EPSG:4326, NOT UTM
     cx, cy = 87.47, 26.15
     d = 0.048
     poly = Polygon([
@@ -310,7 +298,7 @@ def _make_synthetic_watershed(gpkg_out, shp_out):
         (cx-d*0.5, cy+d), (cx-d, cy+d*0.4),
     ])
     gdf = gpd.GeoDataFrame({"area_ha": [1000], "source": ["synthetic"]},
-                           geometry=[poly], crs="EPSG:4326")
+                           geometry=[poly], crs="EPSG:4326")  # FIX: degrees → WGS84
     gdf.to_file(gpkg_out, driver="GPKG")
     gdf.to_file(shp_out)
     area = gdf.to_crs(TARGET_CRS).geometry.area.iloc[0] / 10_000
@@ -346,12 +334,17 @@ def rasterize_watershed(watershed_geom):
     from rasterio.features import rasterize
     from shapely.ops import transform as shapely_transform
     import pyproj
+    import geopandas as gpd
 
     out_path = os.path.join(OUTPUT_DIR, "maps", "area.tif")
 
-    # Reproject watershed polygon to UTM
-    proj_fwd       = pyproj.Transformer.from_crs("EPSG:4326", TARGET_CRS, always_xy=True)
-    watershed_utm  = shapely_transform(proj_fwd.transform, watershed_geom)
+    # Detect the actual CRS of the incoming geometry and reproject to UTM.
+    # HydroSHEDS returns WGS84 (4326); OWN_FILE path returns WGS84 too (after
+    # load_own_watershed reprojects it).  Hardcoding EPSG:32645 as the SOURCE
+    # was wrong — it would be a no-op when already in 32645, or silently
+    # mis-project when the geometry is really in 4326.
+    tmp_gdf = gpd.GeoDataFrame(geometry=[watershed_geom], crs="EPSG:4326")
+    watershed_utm  = tmp_gdf.to_crs(TARGET_CRS).geometry.iloc[0]
     bounds         = watershed_utm.bounds   # (minx, miny, maxx, maxy) in metres
 
     log(f"  Watershed UTM bounds: W={bounds[0]:.1f} S={bounds[1]:.1f} "
@@ -405,7 +398,7 @@ def rasterize_watershed(watershed_geom):
 
 def get_dem_snapped(watershed_geom, master):
     """
-    Downloads NASA SRTM 30m tiles and reprojects them EXACTLY onto
+    Downloads and reprojects them EXACTLY onto
     the master grid using master.reproject_array().
 
     The key: instead of letting rasterio choose the output grid
@@ -563,11 +556,19 @@ def compute_ldd_snapped(dem_path, master):
 
     dirmap   = (64, 128, 1, 2, 4, 8, 16, 32)
     fdir     = grid.flowdir(filled, dirmap=dirmap)
-    code_map = {64:6, 128:9, 1:8, 2:7, 4:4, 8:1, 16:2, 32:3, 0:5}
+    # FIX: pysheds uses 0 to mark cells with no flow direction (boundary /
+    # outside-watershed cells).  The old code_map mapped 0 → 5, which is the
+    # PCRaster code for a pit/outlet.  That turns every nodata-boundary cell
+    # into a false outlet inside the flow network.
+    # Correct mapping: 0 (pysheds nodata) → -1 (PCRaster nodata/masked).
+    # 5 (PCRaster pit) is assigned only to true pits identified by pysheds,
+    # which pysheds does NOT mark with 0 — pits are resolved before flowdir.
+    code_map = {64:6, 128:9, 1:8, 2:7, 4:4, 8:1, 16:2, 32:3}
     fdir_arr = np.array(fdir).astype(np.int16)
-    ldd_raw  = np.full_like(fdir_arr, 5, dtype=np.int8)
+    ldd_raw  = np.full_like(fdir_arr, -1, dtype=np.int8)  # default = nodata
     for ps, pcr in code_map.items():
         ldd_raw[fdir_arr == ps] = pcr
+    # Cells that pysheds left as 0 (no direction assigned) stay as -1 (nodata)
 
     # Snap to master grid
     with rasterio.open(dem_path) as src:
@@ -579,7 +580,11 @@ def compute_ldd_snapped(dem_path, master):
         ).astype(np.int8)
 
     master.save(ldd_snapped, out_path, "int8", -1)
-    log(f"  LDD snapped | pit cells: {int((ldd_snapped==5).sum())}")
+    # FIX: after the code_map fix, 5 is never assigned (pysheds resolves all
+    # pits before flowdir, so no cell will have direction-code 5).  Count valid
+    # direction cells (1-9) instead of the now-always-zero pit count.
+    valid_ldd = int(np.isin(ldd_snapped, [1,2,3,4,6,7,8,9]).sum())
+    log(f"  LDD snapped | valid direction cells: {valid_ldd:,}")
     log(f"  → {out_path}")
     return ldd_snapped
 
@@ -598,10 +603,17 @@ def compute_gradient_snapped(dem_snapped, master):
     out_path = os.path.join(OUTPUT_DIR, "maps", "gradient.tif")
     dem_work = dem_snapped.copy().astype(np.float32)
     dem_work[dem_work <= -9000] = np.nan
-    safe     = np.where(np.isnan(dem_work), 0, dem_work)
+    # FIX: filling nodata with 0 before np.gradient creates large spurious slopes
+    # at watershed boundaries (real elevation ~70 m next to 0 = fake cliff).
+    # Instead fill nodata with the local valid mean so boundary differences are
+    # minimised, then mask those cells out of the final output.
+    fill_val = np.nanmean(dem_work) if not np.all(np.isnan(dem_work)) else 0.0
+    safe     = np.where(np.isnan(dem_work), fill_val, dem_work)
     dz_dx    = np.gradient(safe, RESOLUTION_M, axis=1)
     dz_dy    = np.gradient(safe, RESOLUTION_M, axis=0)
     gradient = np.sqrt(dz_dx**2 + dz_dy**2).astype(np.float32)
+    # Zero or negative slopes are physically impossible; clamp to a tiny minimum
+    # so LISFLOOD never divides by zero.  Also mask nodata cells.
     gradient = np.where(
         (gradient <= 0) | np.isnan(gradient) | (dem_snapped <= -9000),
         1e-5, gradient
@@ -627,8 +639,13 @@ def compute_elvstd_snapped(dem_snapped, master):
     out_path = os.path.join(OUTPUT_DIR, "maps", "elvstd.tif")
     dem_work = dem_snapped.copy().astype(np.float32)
     dem_work[dem_work <= -9000] = np.nan
+    # FIX: same boundary issue as gradient — filling nodata with 0 inflates
+    # std dev at watershed edges (e.g. real neighbours ~70 m vs. nodata=0
+    # gives a huge artificial roughness value).  Use nanmean fill instead
+    # so boundary 3×3 windows don't include a fake elevation cliff.
+    fill_val = np.nanmean(dem_work) if not np.all(np.isnan(dem_work)) else 0.0
     elvstd   = generic_filter(
-        np.where(np.isnan(dem_work), 0, dem_work),
+        np.where(np.isnan(dem_work), fill_val, dem_work),
         np.std, size=3, mode="nearest"
     ).astype(np.float32)
     elvstd = np.where(
@@ -645,7 +662,7 @@ def compute_elvstd_snapped(dem_snapped, master):
 #   APPLY MASK + VERIFY ALIGNMENT + SAVE FINAL OUTPUTS
 # ─────────────────────────────────────────────────────────────────────────────
 
-def apply_mask_and_save(mask_arr, ldd, gradient, elvstd, master):
+def apply_mask_and_save(mask_arr, dem_snapped, ldd, gradient, elvstd, master):
     """
     1. Verifies all arrays are exactly the same shape (alignment check)
     2. Sets cells outside the watershed to nodata
@@ -662,7 +679,7 @@ def apply_mask_and_save(mask_arr, ldd, gradient, elvstd, master):
     # rather than silently produce wrong LISFLOOD output.
     expected = (master.height, master.width)
     errors   = []
-    for name, arr in [("mask", mask_arr), ("ldd", ldd),
+    for name, arr in [("mask", mask_arr), ("dem", dem_snapped), ("ldd", ldd),
                       ("gradient", gradient), ("elvstd", elvstd)]:
         if arr.shape != expected:
             errors.append(f"    {name}: {arr.shape} ≠ {expected}")
@@ -678,8 +695,16 @@ def apply_mask_and_save(mask_arr, ldd, gradient, elvstd, master):
     grad_out = np.where(mask_arr == 1, gradient, np.float32(-9999))
     elvs_out = np.where(mask_arr == 1, elvstd,   np.float32(-9999))
 
+    # NOTE: area.tif was already written in rasterize_watershed() (Step 2).
+    # We re-save it here only so apply_mask_and_save() owns all outputs in one
+    # place and the alignment-proof loop can open every file uniformly.
+    # The content is identical (mask_arr, unmasked — area IS the mask).
+    # Mask the DEM so only inside-watershed cells have valid elevation values.
+    dem_out = np.where(mask_arr == 1, dem_snapped, np.float32(-9999))
+
     configs = {
         "area":     (mask_arr, "int8",    0),
+        "dem":      (dem_out,  "float32", -9999),
         "ldd":      (ldd_out,  "int8",    -1),
         "gradient": (grad_out, "float32", -9999),
         "elvstd":   (elvs_out, "float32", -9999),
@@ -693,7 +718,7 @@ def apply_mask_and_save(mask_arr, ldd, gradient, elvstd, master):
         map_path = os.path.join(OUTPUT_DIR, "maps", f"{name}.map")
         master.save(arr, tif_path, dtype, nodata)
         tif_paths[name] = tif_path
-        if _gdal_convert(tif_path, map_path):
+        if _gdal_convert(tif_path, map_path, name):
             map_paths[name] = map_path
             log(f"  {name}.tif + {name}.map  ✔")
         else:
@@ -718,24 +743,70 @@ def apply_mask_and_save(mask_arr, ldd, gradient, elvstd, master):
     return tif_paths, map_paths, ldd_out, grad_out, elvs_out
 
 
-def _gdal_convert(tif, mapfile):
+def _gdal_convert(tif, mapfile, name):
+    """Convert GeoTIFF to PCRaster .map with the correct value scale.
+
+    Some GDAL builds on macOS lack full PCRaster driver support and reject
+    VS_BOOLEAN / VS_LDD via -mo.  Strategy:
+      1. Try with -mo PCRASTER_VALUESCALE=<correct_scale>  (preferred)
+      2. If that fails, retry without -mo (GDAL picks VS_SCALAR by default)
+         so LISFLOOD at least gets a readable .map file, with a warning.
+    """
     try:
+        if name == "area":
+            val_scale = "VS_BOOLEAN"
+        elif name == "ldd":
+            val_scale = "VS_LDD"
+        else:
+            val_scale = "VS_SCALAR"
+
+        # Attempt 1 — with explicit value scale
         r = subprocess.run(
+            ["gdal_translate", "-of", "PCRaster",
+             "-mo", f"PCRASTER_VALUESCALE={val_scale}",
+             tif, mapfile],
+            capture_output=True, text=True, timeout=60
+        )
+        if r.returncode == 0 and os.path.exists(mapfile):
+            return True
+
+        # Attempt 2 — without -mo (GDAL defaults to VS_SCALAR)
+        # Warn so the user knows the value scale is not set correctly.
+        log(f"  {name}: -mo flag rejected by this GDAL build — retrying "
+            f"without value scale (result will be VS_SCALAR; "
+            f"set it manually in PCRaster if needed)", "WARN")
+        r2 = subprocess.run(
             ["gdal_translate", "-of", "PCRaster", tif, mapfile],
             capture_output=True, text=True, timeout=60
         )
-        return r.returncode == 0 and os.path.exists(mapfile)
+        return r2.returncode == 0 and os.path.exists(mapfile)
     except Exception:
         return False
 
 
 def _write_convert_script(tif_paths):
+    """Write a fallback shell script with correct PCRaster value scale flags."""
+    # FIX: old version omitted -mo flags, so manually-run conversions produced
+    # .map files with the wrong value scale (all VS_SCALAR).  LISFLOOD requires
+    # VS_BOOLEAN for area and VS_LDD for ldd.
+    val_scales = {
+        "area":     "VS_BOOLEAN",
+        "dem":      "VS_SCALAR",
+        "ldd":      "VS_LDD",
+        "gradient": "VS_SCALAR",
+        "elvstd":   "VS_SCALAR",
+    }
     path = os.path.join(OUTPUT_DIR, "manual_convert.sh")
     with open(path, "w") as f:
-        f.write("#!/bin/bash\n# sudo apt install gdal-bin\n\n")
+        f.write("#!/bin/bash\n# Install GDAL with PCRaster support:\n"
+                "#   macOS : brew install gdal\n"
+                "#   Ubuntu: sudo apt install gdal-bin\n\n")
         for name, tif in tif_paths.items():
-            f.write(f"gdal_translate -of PCRaster {tif} "
-                    f"{tif.replace('.tif','.map')}\n")
+            scale = val_scales.get(name, "VS_SCALAR")
+            mapfile = tif.replace(".tif", ".map")
+            f.write(f"gdal_translate -of PCRaster "
+                    f"-mo PCRASTER_VALUESCALE={scale} "
+                    f"{tif} {mapfile}\n")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -879,21 +950,29 @@ def load_own_watershed():
 
     # ── Handle missing CRS ─────────────────────────────────────────────────────
     if gdf.crs is None:
+        # FIX: was setting EPSG:32645 (UTM) — but coordinates without a CRS
+        # are almost always in degrees (WGS84).  The function must return WGS84
+        # geometry anyway, so assume EPSG:4326 and let the user correct in QGIS
+        # if the assumption is wrong.
         log("  No CRS found in file — assuming WGS84 (EPSG:4326)", "WARN")
         log("  If your file uses a different CRS, set it in QGIS first", "WARN")
         gdf = gdf.set_crs("EPSG:4326")
 
     # ── Reproject to WGS84 if needed ──────────────────────────────────────────
+    # The rest of the pipeline (SRTM tile downloads, bounds checks) expects
+    # geographic coordinates (degrees).  Reproject to WGS84 here so the
+    # returned geometry is always in EPSG:4326.  UTM reprojection happens
+    # later inside rasterize_watershed().
     if gdf.crs.to_epsg() != 4326:
-        log(f"  Reprojecting from {gdf.crs.to_epsg()} → WGS84 ...")
-        gdf = gdf.to_crs("EPSG:4326")
+        log(f"  Reprojecting from {gdf.crs.to_epsg()} → WGS84 (EPSG:4326) ...")
+        gdf = gdf.to_crs("EPSG:4326")  # FIX: was wrongly set to EPSG:32645 (UTM)
 
     # ── Handle multiple features ───────────────────────────────────────────────
     if len(gdf) > 1:
         log(f"  Multiple features ({len(gdf)}) — dissolving into one polygon ...", "WARN")
         log(f"  (If you only want one specific feature, dissolve in QGIS first)", "WARN")
         dissolved = unary_union(gdf.geometry.values)
-        gdf = gpd.GeoDataFrame(geometry=[dissolved], crs="EPSG:4326")
+        gdf = gpd.GeoDataFrame(geometry=[dissolved], crs="EPSG:4326")  # FIX: keep WGS84
 
     # ── Handle MultiPolygon ────────────────────────────────────────────────────
     geom = gdf.iloc[0].geometry
@@ -915,7 +994,7 @@ def load_own_watershed():
     out_shp  = os.path.join(OUTPUT_DIR, "watershed.shp")
     result   = gpd.GeoDataFrame(
         {"area_ha": [area_ha], "source": [f"own_file:{os.path.basename(path)}"]},
-        geometry=[geom], crs="EPSG:4326"
+        geometry=[geom], crs="EPSG:4326"  # FIX: geometry is in WGS84 at this point
     )
     result.to_file(out_gpkg, driver="GPKG")
     result.to_file(out_shp)
@@ -974,7 +1053,7 @@ def main():
 
     # 6 — Verify alignment, apply mask, save .tif + .map
     tif_paths, map_paths, ldd_out, grad_out, elvs_out = apply_mask_and_save(
-        mask_arr, ldd_arr, gradient_arr, elvstd_arr, master
+        mask_arr, dem_snapped, ldd_arr, gradient_arr, elvstd_arr, master
     )
 
     # Visual check
