@@ -32,12 +32,6 @@ import os
 # Any CRS is accepted — the pipeline reprojects automatically.
 ROI_SHAPEFILE    = "./ShapeFile/ArariaShapefile.shp"
 
-# How to obtain the watershed polygon. One of:
-#   "OWN_FILE"   → use ROI_SHAPEFILE above
-#   "HYDROSHEDS" → auto-download from HydroSHEDS (requires internet)
-#   "SYNTHETIC"  → built-in test polygon (no file needed)
-WATERSHED_SOURCE = "OWN_FILE"
-
 # ── Spatial grid ──────────────────────────────────────────────────────────────
 RESOLUTION_M     = 30          # pixel size in metres
 
@@ -46,19 +40,54 @@ RESOLUTION_M     = 30          # pixel size in metres
 # str   → override, e.g. "EPSG:32645"  (UTM Zone 45N, Bihar)
 TARGET_CRS       = None
 
+
 # ── Output directories ────────────────────────────────────────────────────────
-OUTPUT_TOPO      = "./lisflood_outputs"
+OUTPUT_TOPO      = "./lisflood_topography"
 OUTPUT_LULC      = "./lisflood_lulc"
 OUTPUT_SOIL      = "./lisflood_soil"
 OUTPUT_METEO     = "./lisflood_meteo"
+OUTPUT_CHANNELS  = "./lisflood_channels"
+OUTPUT_GAUGES    = "./lisflood_gauges"
+
+# ── Gauges & sites ────────────────────────────────────────────────────────────
+# Maximum search radius (m) when snapping a coordinate to the nearest channel cell.
+GAUGE_SNAP_DIST_M = 500
+
+# User-specified gauge locations (WGS84). Leave empty to use only the
+# auto-detected outlet gauge.  Format: [("Name", lat_deg, lon_deg), ...]
+GAUGE_LOCATIONS = [
+    # ("Araria_Bridge", 26.15, 87.47),
+]
+
+# Additional monitoring sites (WGS84). NOT required to be on the channel.
+# These are written to sites.map but NOT gauges.map.
+# Format: [("Name", lat_deg, lon_deg), ...]
+SITE_LOCATIONS = [
+]
 
 # ── GEE project ───────────────────────────────────────────────────────────────
 GEE_PROJECT      = "gssha-480613"
 
-# ── HydroSHEDS options (only used when WATERSHED_SOURCE = "HYDROSHEDS") ───────
-HYDROSHEDS_BBOX      = [87.0, 25.8, 88.0, 26.6]   # [west, south, east, north]
-HYDROSHEDS_TARGET_HA = 1000
-HYDROSHEDS_MAX_CANDS = 5
+# =============================================================================
+#  SOIL DEPTH CONFIGURATION
+# =============================================================================
+
+# ── SoilGrids depth bands used when querying GEE (lisflood_soil_preprocessing)
+# L1 covers 0–60 cm (rooting zone), L2 covers 60–200 cm (sub-rooting zone).
+# Weights are layer thickness in cm, used for thickness-weighted averaging.
+SOIL_DEPTHS_L1         = ["0-5cm", "5-15cm", "15-30cm", "30-60cm"]
+SOIL_DEPTHS_L1_WEIGHTS = [5,        10,        15,         30]      # cm
+
+SOIL_DEPTHS_L2         = ["60-100cm", "100-200cm"]
+SOIL_DEPTHS_L2_WEIGHTS = [40,          100]                         # cm
+
+# ── LISFLOOD soildep1 / soildep2 — derived from the SoilGrids layer thicknesses
+# so that the depth used for water storage exactly matches the depth over which
+# the hydraulic properties (ThetaSat, Ksat, …) were averaged.
+#   Layer 1 total: sum([5,10,15,30]) cm  = 60 cm  = 600 mm
+#   Layer 2 total: sum([40,100])     cm  = 140 cm = 1400 mm
+SOIL_DEPTH_L1_MM = sum(SOIL_DEPTHS_L1_WEIGHTS) * 10   # 600 mm
+SOIL_DEPTH_L2_MM = sum(SOIL_DEPTHS_L2_WEIGHTS) * 10   # 1400 mm
 
 # =============================================================================
 #  DERIVED PATHS — do not edit
@@ -120,47 +149,3 @@ def resolve_mean_elevation():
     except Exception:
         return 0.0
 
-
-def resolve_crs():
-    """
-    Return the effective TARGET_CRS string.
-
-    If TARGET_CRS is already set, return it unchanged.
-    Otherwise read ROI_SHAPEFILE, find the centroid in WGS84, and compute the
-    matching UTM zone EPSG code.
-
-    UTM zone formula:
-      zone   = floor((lon + 180) / 6) + 1
-      EPSG   = 32600 + zone  (Northern hemisphere)
-               32700 + zone  (Southern hemisphere)
-    """
-    if TARGET_CRS is not None:
-        return TARGET_CRS
-
-    if not os.path.exists(ROI_SHAPEFILE):
-        raise FileNotFoundError(
-            f"ROI_SHAPEFILE not found: {ROI_SHAPEFILE}\n"
-            "Set the correct path or set TARGET_CRS manually."
-        )
-
-    try:
-        import geopandas as gpd
-        gdf = gpd.read_file(ROI_SHAPEFILE)
-        if gdf.crs is None or gdf.crs.to_epsg() != 4326:
-            gdf = gdf.to_crs("EPSG:4326")
-        centroid = gdf.geometry.unary_union.centroid
-        lon, lat = centroid.x, centroid.y
-        zone = int(math.floor((lon + 180.0) / 6.0)) + 1
-        epsg = 32600 + zone if lat >= 0 else 32700 + zone
-        crs  = f"EPSG:{epsg}"
-        print(f"  [config] Auto-detected CRS: {crs}  "
-              f"(centroid lon={lon:.3f}° lat={lat:.3f}°)")
-        return crs
-    except ImportError:
-        raise ImportError("geopandas is required for CRS auto-detection. "
-                          "Run: pip install geopandas")
-    except Exception as e:
-        raise RuntimeError(
-            f"CRS auto-detection failed for {ROI_SHAPEFILE}: {e}\n"
-            "Set TARGET_CRS manually in pipeline_config.py."
-        )

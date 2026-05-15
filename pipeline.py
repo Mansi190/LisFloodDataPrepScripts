@@ -32,12 +32,13 @@ import pipeline_config as cfg
 # ─────────────────────────────────────────────────────────────────────────────
 
 STEPS = [
-    ("topo",  "topographyMapsScript.py"),
-    ("lulc",  "lisflood_lulc_preprocessing.py"),
-    ("soil",  "lisflood_soil_preprocessing.py"),
-    ("chan",  "channnels.py"),
-    ("meteo", "lisflood_meteo_penman.py"),
-    ("lai",   "LAI_Landsat.py"),
+    ("topo",   "topographyMapsScript.py"),
+    ("lulc",   "lisflood_lulc_preprocessing.py"),
+    ("soil",   "lisflood_soil_preprocessing.py"),
+    ("chan",   "channnels.py"),
+    ("gauges", "lisflood_gauges_sites.py"),
+    ("meteo",  "lisflood_meteo_penman.py"),
+    ("lai",    "LAI_Landsat.py"),
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -66,9 +67,10 @@ EXPECTED_OUTPUTS = {
                   "alpha1_forest",  "alpha1_other",  "alpha2",
                   "lambda1_forest", "lambda1_other", "lambda2",
                   "ksat1_forest",   "ksat1_other",   "ksat2"),
-    "chan": _maps("./lisflood_channels",
-                  "chan", "changrad", "chanman", "chanleng",
-                  "chanbw", "chans", "chanbnkf"),
+    "chan": _maps(cfg.OUTPUT_CHANNELS,
+                 "chan", "changrad", "chanman", "chanleng",
+                 "chanbw", "chans", "chanbnkf"),
+    "gauges": _maps(cfg.OUTPUT_GAUGES, "gauges", "sites"),
     "meteo": _nc(cfg.OUTPUT_METEO + "/penman", "pr", "ta", "et", "e", "es"),
     "lai": [],   # validated separately (12 × 2 monthly files)
 }
@@ -78,12 +80,13 @@ EXPECTED_OUTPUTS = {
 # ─────────────────────────────────────────────────────────────────────────────
 
 STEP_DEPS = {
-    "topo":  [],
-    "lulc":  ["topo"],
-    "soil":  ["topo", "lulc"],
-    "chan":  ["topo"],
-    "meteo": ["topo"],
-    "lai":   ["topo", "lulc"],
+    "topo":   [],
+    "lulc":   ["topo"],
+    "soil":   ["topo", "lulc"],
+    "chan":   ["topo"],
+    "gauges": ["topo", "chan"],
+    "meteo":  ["topo"],
+    "lai":    ["topo", "lulc"],
 }
 
 
@@ -197,12 +200,13 @@ def generate_ini():
       - Reservoir / lake data (if applicable)
       - Calibration multipliers (SnowMeltCoef, b_Xinanjiang, etc.)
     """
-    topo  = cfg.OUTPUT_TOPO + "/maps"
-    lulc  = cfg.OUTPUT_LULC + "/maps"
-    soil  = cfg.OUTPUT_SOIL + "/maps"
-    chan  = "./lisflood_channels/maps"
-    meteo = cfg.OUTPUT_METEO + "/penman"
-    lai   = "./lai_outputs_landsat/maps"
+    topo   = cfg.OUTPUT_TOPO + "/maps"
+    lulc   = cfg.OUTPUT_LULC + "/maps"
+    soil   = cfg.OUTPUT_SOIL + "/maps"
+    chan   = cfg.OUTPUT_CHANNELS + "/maps"
+    gauges = cfg.OUTPUT_GAUGES + "/maps"
+    meteo  = cfg.OUTPUT_METEO + "/penman"
+    lai    = "./lai_outputs_landsat/maps"
     crs   = cfg.resolve_crs()
 
     ini_path = "./lisflood_settings.xml"
@@ -314,6 +318,12 @@ def generate_ini():
   ═══════════════════════════════════════════════════════════════ -->
   <textvar name="LAIForest" value="{lai}/lai_forest_[DDMMYYYY].map"/>
   <textvar name="LAIOther"  value="{lai}/lai_other_[DDMMYYYY].map"/>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       GAUGES AND MONITORING SITES
+  ═══════════════════════════════════════════════════════════════ -->
+  <textvar name="GaugesMap"  value="{gauges}/gauges.map"/>
+  <textvar name="SitesMap"   value="{gauges}/sites.map"/>
 
   <!-- ══════════════════════════════════════════════════════════════
        METEOROLOGICAL FORCING (NetCDF stacks)
