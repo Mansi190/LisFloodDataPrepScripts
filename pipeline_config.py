@@ -14,7 +14,7 @@ Set TARGET_CRS to None to auto-detect the correct UTM zone, or override manually
 PIPELINE ORDER
 --------------
   1. topographyMapsScript.py     → generates area.tif (master grid)
-  2. lisflood_lulc_preprocessing.py
+  2. lisflood_frac_lulc_preprocessing.py
   3. lisflood_soil_preprocessing.py
   4. lisflood_meteo_*.py
 """
@@ -33,7 +33,7 @@ import os
 ROI_SHAPEFILE    = "./ShapeFile/ArariaShapefile.shp"
 
 # ── Spatial grid ──────────────────────────────────────────────────────────────
-RESOLUTION_M     = 30          # pixel size in metres
+RESOLUTION_M     = 300          # pixel size in metres
 
 # ── CRS ───────────────────────────────────────────────────────────────────────
 # None  → auto-detect UTM zone from ROI_SHAPEFILE centroid (recommended)
@@ -44,6 +44,7 @@ TARGET_CRS       = None
 # ── Output directories ────────────────────────────────────────────────────────
 OUTPUT_TOPO      = "./lisflood_topography"
 OUTPUT_LULC      = "./lisflood_lulc"
+OUTPUT_LULC_COVER = "./lisflood_lulc_cover"
 OUTPUT_SOIL      = "./lisflood_soil"
 OUTPUT_METEO     = "./lisflood_meteo"
 OUTPUT_CHANNELS  = "./lisflood_channels"
@@ -96,8 +97,8 @@ SOIL_DEPTH_L2_MM = sum(SOIL_DEPTHS_L2_WEIGHTS) * 10   # 1400 mm
 # area.tif is the master grid written by topographyMapsScript.py
 AREA_TIF      = os.path.join(OUTPUT_TOPO, "maps", "area.tif")
 
-# lulc_aligned.tif is written by lisflood_lulc_preprocessing.py
-LULC_ALIGNED  = os.path.join(OUTPUT_LULC, "raw", "lulc_aligned.tif")
+# lulc.tif is written by lisflood_frac_lulc_preprocessing.py
+LULC_ALIGNED  = os.path.join(OUTPUT_LULC, "maps", "lulc.tif")
 
 # Common nodata sentinels
 NODATA_FLOAT  = -9999.0

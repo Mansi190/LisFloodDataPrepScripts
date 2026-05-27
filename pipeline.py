@@ -11,7 +11,7 @@ USAGE
 STEPS (in dependency order)
 ----------------------------
     topo    topographyMapsScript.py      → area, dem, ldd, gradient, elvstd
-    lulc    lisflood_lulc_preprocessing  → frac*, cropcoef, crgrnum, mannings, soildep
+    lulc    lisflood_frac_lulc_preprocessing  → frac*, cropcoef, crgrnum, mannings, soildep
     soil    lisflood_soil_preprocessing  → thetas, thetar, alpha, lambda, ksat
     chan    channnels.py                 → chan, changrad, chanman, chanleng, chanbw,
                                            chans, chanbnkf
@@ -33,7 +33,7 @@ import pipeline_config as cfg
 
 STEPS = [
     ("topo",   "topographyMapsScript.py"),
-    ("lulc",   "lisflood_lulc_preprocessing.py"),
+    ("lulc",   "lisflood_frac_lulc_preprocessing.py"),
     ("soil",   "lisflood_soil_preprocessing.py"),
     ("chan",   "channnels.py"),
     ("gauges", "lisflood_gauges_sites.py"),
@@ -61,13 +61,13 @@ EXPECTED_OUTPUTS = {
                   "mannings_forest", "mannings_other",
                   "soildep1_forest", "soildep1_other",
                   "soildep2_forest", "soildep2_other"),
-    "soil": _maps(cfg.OUTPUT_SOIL,
+    "soil": _nc(cfg.OUTPUT_SOIL + "/maps",
                   "thetas1_forest", "thetas1_other", "thetas2",
                   "thetar1_forest", "thetar1_other", "thetar2",
                   "alpha1_forest",  "alpha1_other",  "alpha2",
                   "lambda1_forest", "lambda1_other", "lambda2",
                   "ksat1_forest",   "ksat1_other",   "ksat2"),
-    "chan": _maps(cfg.OUTPUT_CHANNELS,
+    "chan": _nc(cfg.OUTPUT_CHANNELS + "/maps",
                  "chan", "changrad", "chanman", "chanleng",
                  "chanbw", "chans", "chanbnkf"),
     "gauges": _maps(cfg.OUTPUT_GAUGES, "gauges", "sites"),
@@ -281,36 +281,36 @@ def generate_ini():
   <!-- ══════════════════════════════════════════════════════════════
        SPATIAL MAPS — SOIL HYDRAULIC PROPERTIES
   ═══════════════════════════════════════════════════════════════ -->
-  <textvar name="ThetaSat1a"  value="{soil}/thetas1_forest.map"/>
-  <textvar name="ThetaSat1b"  value="{soil}/thetas1_other.map"/>
-  <textvar name="ThetaSat2"   value="{soil}/thetas2.map"/>
+  <textvar name="ThetaSat1a"  value="{soil}/thetas1_forest.nc"/>
+  <textvar name="ThetaSat1b"  value="{soil}/thetas1_other.nc"/>
+  <textvar name="ThetaSat2"   value="{soil}/thetas2.nc"/>
 
-  <textvar name="ThetaRes1a"  value="{soil}/thetar1_forest.map"/>
-  <textvar name="ThetaRes1b"  value="{soil}/thetar1_other.map"/>
-  <textvar name="ThetaRes2"   value="{soil}/thetar2.map"/>
+  <textvar name="ThetaRes1a"  value="{soil}/thetar1_forest.nc"/>
+  <textvar name="ThetaRes1b"  value="{soil}/thetar1_other.nc"/>
+  <textvar name="ThetaRes2"   value="{soil}/thetar2.nc"/>
 
-  <textvar name="GenuAlpha1a" value="{soil}/alpha1_forest.map"/>
-  <textvar name="GenuAlpha1b" value="{soil}/alpha1_other.map"/>
-  <textvar name="GenuAlpha2"  value="{soil}/alpha2.map"/>
+  <textvar name="GenuAlpha1a" value="{soil}/alpha1_forest.nc"/>
+  <textvar name="GenuAlpha1b" value="{soil}/alpha1_other.nc"/>
+  <textvar name="GenuAlpha2"  value="{soil}/alpha2.nc"/>
 
-  <textvar name="GenuLambda1a" value="{soil}/lambda1_forest.map"/>
-  <textvar name="GenuLambda1b" value="{soil}/lambda1_other.map"/>
-  <textvar name="GenuLambda2"  value="{soil}/lambda2.map"/>
+  <textvar name="GenuLambda1a" value="{soil}/lambda1_forest.nc"/>
+  <textvar name="GenuLambda1b" value="{soil}/lambda1_other.nc"/>
+  <textvar name="GenuLambda2"  value="{soil}/lambda2.nc"/>
 
-  <textvar name="KSat1a"  value="{soil}/ksat1_forest.map"/>
-  <textvar name="KSat1b"  value="{soil}/ksat1_other.map"/>
-  <textvar name="KSat2"   value="{soil}/ksat2.map"/>
+  <textvar name="KSat1a"  value="{soil}/ksat1_forest.nc"/>
+  <textvar name="KSat1b"  value="{soil}/ksat1_other.nc"/>
+  <textvar name="KSat2"   value="{soil}/ksat2.nc"/>
 
   <!-- ══════════════════════════════════════════════════════════════
        SPATIAL MAPS — CHANNEL GEOMETRY
   ═══════════════════════════════════════════════════════════════ -->
-  <textvar name="Channels"           value="{chan}/chan.map"/>
-  <textvar name="ChanGrad"           value="{chan}/changrad.map"/>
-  <textvar name="ChanMan"            value="{chan}/chanman.map"/>
-  <textvar name="ChanLength"         value="{chan}/chanleng.map"/>
-  <textvar name="ChanBottomWidth"    value="{chan}/chanbw.map"/>
-  <textvar name="ChanSdXdY"          value="{chan}/chans.map"/>
-  <textvar name="ChanDepthThreshold" value="{chan}/chanbnkf.map"/>
+  <textvar name="Channels"           value="{chan}/chan.nc"/>
+  <textvar name="ChanGrad"           value="{chan}/changrad.nc"/>
+  <textvar name="ChanMan"            value="{chan}/chanman.nc"/>
+  <textvar name="ChanLength"         value="{chan}/chanleng.nc"/>
+  <textvar name="ChanBottomWidth"    value="{chan}/chanbw.nc"/>
+  <textvar name="ChanSdXdY"          value="{chan}/chans.nc"/>
+  <textvar name="ChanDepthThreshold" value="{chan}/chanbnkf.nc"/>
 
   <!-- ══════════════════════════════════════════════════════════════
        SPATIAL MAPS — LAI (12 monthly files)

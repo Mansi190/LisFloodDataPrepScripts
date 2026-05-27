@@ -165,6 +165,7 @@ def reproject_to_grid(src_array, src_transform, src_crs, like,
         "nearest":  Resampling.nearest,
         "bilinear": Resampling.bilinear,
         "mode":     Resampling.mode,
+        "average":  Resampling.average,
     }[resampling_method]
     dst = np.full((info.height, info.width), dst_nodata, dtype=src_array.dtype)
     reproject(

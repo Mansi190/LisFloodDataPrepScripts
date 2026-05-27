@@ -26,104 +26,39 @@ from pathlib import Path
 # =============================================================================
 
 import pipeline_config as _cfg
+from lisflood_utils import (log, make_dirs, gdal_convert_netcdf, init_ee,
+                            load_grid, save_aligned, reproject_to_grid,
+                            snap_to_grid)
 
 AREA_TIF        = _cfg.AREA_TIF
 LULC_ALIGNED    = _cfg.LULC_ALIGNED
 OUTPUT_DIR      = _cfg.OUTPUT_SOIL
 
-TARGET_CRS      = _cfg.resolve_crs()
 RESOLUTION_M    = _cfg.RESOLUTION_M
 
 NODATA_FLOAT    = _cfg.NODATA_FLOAT
 NODATA_INT      = _cfg.NODATA_INT
 GEE_SCALE       = 60     # Extract at 60m to balance memory and hi-res interpolation
 
-# SoilGrids depth layers and their thickness (cm) for weighted averaging.
-# L1 covers 0-60cm, L2 covers 60-200cm.
-DEPTHS_L1         = ['0-5cm', '5-15cm', '15-30cm', '30-60cm']
-DEPTHS_L1_WEIGHTS = [5,        10,       15,         30]        # cm thickness
-
-DEPTHS_L2         = ['60-100cm', '100-200cm']
-DEPTHS_L2_WEIGHTS = [40,          100]                          # cm thickness
+# SoilGrids depth layers and weights — defined in pipeline_config.py
+DEPTHS_L1         = _cfg.SOIL_DEPTHS_L1
+DEPTHS_L1_WEIGHTS = _cfg.SOIL_DEPTHS_L1_WEIGHTS
+DEPTHS_L2         = _cfg.SOIL_DEPTHS_L2
+DEPTHS_L2_WEIGHTS = _cfg.SOIL_DEPTHS_L2_WEIGHTS
 
 # Forest class in the pan_india LULC v3
 CLASS_TREES = 6
 
 # =============================================================================
-#  HELPERS & MASTER GRID
+#  HELPERS  (log, make_dirs, gdal_convert, init_ee, grid helpers
+#                          imported from lisflood_utils)
 # =============================================================================
-
-def log(msg, kind="INFO"):
-    icons = {"INFO": "✔", "STEP": "▶", "WARN": "⚠", "ERROR": "✘", "DONE": "★"}
-    print(f"  {icons.get(kind, '·')}  {msg}")
-
-def make_dirs():
-    for sub in ["", "/raw", "/maps"]:
-        Path(OUTPUT_DIR + sub).mkdir(parents=True, exist_ok=True)
-
-class MasterGrid:
-    def __init__(self, transform, width, height, crs):
-        self.transform = transform
-        self.width     = width
-        self.height    = height
-        self.crs       = crs
-
-    @property
-    def profile(self):
-        return {
-            "driver": "GTiff", "crs": self.crs, "transform": self.transform,
-            "width": self.width, "height": self.height, "count": 1, "compress": "lzw"
-        }
-
-    def snap(self, array, nodata_val):
-        h, w = array.shape
-        if h == self.height and w == self.width: return array
-        cropped = array[:self.height, :self.width]
-        if cropped.shape[0] < self.height or cropped.shape[1] < self.width:
-            out = np.full((self.height, self.width), nodata_val, dtype=array.dtype)
-            out[:cropped.shape[0], :cropped.shape[1]] = cropped
-            return out
-        return cropped
-
-    def reproject_array(self, src_array, src_transform, src_crs, src_nodata, dst_nodata, resampling_method):
-        from rasterio.warp import reproject, Resampling
-        resamp = {"nearest": Resampling.nearest, "bilinear": Resampling.bilinear}[resampling_method]
-        dst = np.full((self.height, self.width), dst_nodata, dtype=src_array.dtype)
-        reproject(
-            source=src_array, destination=dst,
-            src_transform=src_transform, src_crs=src_crs,
-            dst_transform=self.transform, dst_crs=self.crs,
-            resampling=resamp, src_nodata=src_nodata, dst_nodata=dst_nodata
-        )
-        return dst
-
-    def save(self, array, path, dtype, nodata):
-        import rasterio
-        p = self.profile.copy()
-        p.update({"dtype": dtype, "nodata": nodata})
-        with rasterio.open(path, "w", **p) as dst:
-            dst.write(self.snap(array, nodata).astype(dtype), 1)
-
-def _gdal_convert(tif_path, map_path, pcraster_type="VS_SCALAR"):
-    try:
-        cmd = ["gdal_translate", "-of", "PCRaster", "-mo", f"PCRASTER_VALUESCALE={pcraster_type}", tif_path, map_path]
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
-        return r.returncode == 0 and os.path.exists(map_path)
-    except Exception: return False
 
 # =============================================================================
 #  CORE GEE EXTRACTION
 # =============================================================================
 
-def init_ee():
-    import ee
-    try:
-        ee.Initialize(project=_cfg.GEE_PROJECT)
-    except Exception:
-        ee.Authenticate()
-        ee.Initialize(project=_cfg.GEE_PROJECT)
-
-def fetch_soilgrids_layer(master, var_name, depths, weights, out_tif):
+def fetch_soilgrids_layer(info, var_name, depths, weights, out_tif):
     """
     Downloads a thickness-weighted mean of a SoilGrids variable across the
     given depth layers.
@@ -142,12 +77,12 @@ def fetch_soilgrids_layer(master, var_name, depths, weights, out_tif):
 
     log(f"  Downloading {var_name} ({depths}) from SoilGrids GEE ...")
 
-    # 1. Build bounding box from MasterGrid
-    t = master.transform
+    # 1. Build bounding box from the canonical grid
+    t = info.transform
     xmin, ymax = t.c, t.f
-    xmax = xmin + t.a * master.width
-    ymin = ymax + t.e * master.height
-    utm_to_wgs84 = pyproj.Transformer.from_crs(TARGET_CRS, "EPSG:4326", always_xy=True)
+    xmax = xmin + t.a * info.width
+    ymin = ymax + t.e * info.height
+    utm_to_wgs84 = pyproj.Transformer.from_crs(info.crs, "EPSG:4326", always_xy=True)
     lon_min, lat_min = utm_to_wgs84.transform(xmin, ymin)
     lon_max, lat_max = utm_to_wgs84.transform(xmax, ymax)
 
@@ -183,25 +118,25 @@ def fetch_soilgrids_layer(master, var_name, depths, weights, out_tif):
 #  PEDOTRANSFER PIPELINE
 # =============================================================================
 
-def process_soil(master, area_mask, lulc_arr):
+def process_soil(info, area_mask, lulc_arr):
     log("STEP 1 — Fetching raw soil data from Earth Engine", "STEP")
-    init_ee()
+    init_ee(_cfg.GEE_PROJECT)
 
     raw_dir = os.path.join(OUTPUT_DIR, "raw")
 
     # Fetch clay, silt, bulk-density, and soil organic carbon for both layers.
     # silt and soc are needed for the full Tóth et al. (2015) PTF equations.
-    clay1_path = fetch_soilgrids_layer(master, "clay", DEPTHS_L1, DEPTHS_L1_WEIGHTS, os.path.join(raw_dir, "clay1.tif"))
-    silt1_path = fetch_soilgrids_layer(master, "silt", DEPTHS_L1, DEPTHS_L1_WEIGHTS, os.path.join(raw_dir, "silt1.tif"))
-    bd1_path   = fetch_soilgrids_layer(master, "bdod", DEPTHS_L1, DEPTHS_L1_WEIGHTS, os.path.join(raw_dir, "bd1.tif"))
-    soc1_path  = fetch_soilgrids_layer(master, "soc",  DEPTHS_L1, DEPTHS_L1_WEIGHTS, os.path.join(raw_dir, "soc1.tif"))
+    clay1_path = fetch_soilgrids_layer(info, "clay", DEPTHS_L1, DEPTHS_L1_WEIGHTS, os.path.join(raw_dir, "clay1.tif"))
+    silt1_path = fetch_soilgrids_layer(info, "silt", DEPTHS_L1, DEPTHS_L1_WEIGHTS, os.path.join(raw_dir, "silt1.tif"))
+    bd1_path   = fetch_soilgrids_layer(info, "bdod", DEPTHS_L1, DEPTHS_L1_WEIGHTS, os.path.join(raw_dir, "bd1.tif"))
+    soc1_path  = fetch_soilgrids_layer(info, "soc",  DEPTHS_L1, DEPTHS_L1_WEIGHTS, os.path.join(raw_dir, "soc1.tif"))
 
-    clay2_path = fetch_soilgrids_layer(master, "clay", DEPTHS_L2, DEPTHS_L2_WEIGHTS, os.path.join(raw_dir, "clay2.tif"))
-    silt2_path = fetch_soilgrids_layer(master, "silt", DEPTHS_L2, DEPTHS_L2_WEIGHTS, os.path.join(raw_dir, "silt2.tif"))
-    bd2_path   = fetch_soilgrids_layer(master, "bdod", DEPTHS_L2, DEPTHS_L2_WEIGHTS, os.path.join(raw_dir, "bd2.tif"))
-    soc2_path  = fetch_soilgrids_layer(master, "soc",  DEPTHS_L2, DEPTHS_L2_WEIGHTS, os.path.join(raw_dir, "soc2.tif"))
+    clay2_path = fetch_soilgrids_layer(info, "clay", DEPTHS_L2, DEPTHS_L2_WEIGHTS, os.path.join(raw_dir, "clay2.tif"))
+    silt2_path = fetch_soilgrids_layer(info, "silt", DEPTHS_L2, DEPTHS_L2_WEIGHTS, os.path.join(raw_dir, "silt2.tif"))
+    bd2_path   = fetch_soilgrids_layer(info, "bdod", DEPTHS_L2, DEPTHS_L2_WEIGHTS, os.path.join(raw_dir, "bd2.tif"))
+    soc2_path  = fetch_soilgrids_layer(info, "soc",  DEPTHS_L2, DEPTHS_L2_WEIGHTS, os.path.join(raw_dir, "soc2.tif"))
 
-    log("STEP 2 — Reprojecting soil inputs to MasterGrid (bilinear interpolation)", "STEP")
+    log("STEP 2 — Reprojecting soil inputs to canonical grid (bilinear interpolation)", "STEP")
     import rasterio
 
     def align_and_scale(tif_path, scale_factor):
@@ -209,11 +144,12 @@ def process_soil(master, area_mask, lulc_arr):
             arr = src.read(1).astype(np.float32)
             arr[arr == src.nodata] = np.nan
             arr = arr / scale_factor
-            aligned = master.reproject_array(
+            aligned = reproject_to_grid(
                 src_array=arr, src_transform=src.transform, src_crs=src.crs,
+                like=AREA_TIF,
                 src_nodata=np.nan, dst_nodata=np.nan, resampling_method="bilinear"
             )
-            return master.snap(aligned, np.nan)
+            return snap_to_grid(aligned, AREA_TIF, np.nan)
 
     # SoilGrids unit conversions:
     #   clay, silt : cg/kg  → divide by 10  → g/kg (≈ %)
@@ -289,46 +225,41 @@ def process_soil(master, area_mask, lulc_arr):
     log("STEP 4 — Masking & Exporting Final 15 LISFLOOD Maps", "STEP")
     # Masking arrays perfectly based on area.tif and lulc_aligned.tif
     inside = (area_mask > 0)
-    # Exclude LULC nodata pixels from both masks.
-    # (lulc_arr == CLASS_TREES) already implies lulc_arr != NODATA_INT, but the
-    # explicit exclusion on o_mask is necessary: without it, nodata cells would
-    # satisfy (lulc_arr != CLASS_TREES) and silently receive "other" PTF values.
     valid_lulc = (lulc_arr != NODATA_INT)
-    f_mask = inside & valid_lulc & (lulc_arr == CLASS_TREES)
-    o_mask = inside & valid_lulc & (lulc_arr != CLASS_TREES)
+    domain = inside & valid_lulc
 
     # We enforce NODATA_FLOAT strictly outside the masks
     def mask_surface(arr, filter_mask):
         return np.where(filter_mask, arr, NODATA_FLOAT).astype(np.float32)
 
     final_maps = {
-        "thetas1_forest": mask_surface(props["thetas1"], f_mask),
-        "thetas1_other":  mask_surface(props["thetas1"], o_mask),
-        "thetas2":        mask_surface(props["thetas2"], inside),
+        "thetas1_forest": mask_surface(props["thetas1"], domain),
+        "thetas1_other":  mask_surface(props["thetas1"], domain),
+        "thetas2":        mask_surface(props["thetas2"], domain),
 
-        "thetar1_forest": mask_surface(props["thetar1"], f_mask),
-        "thetar1_other":  mask_surface(props["thetar1"], o_mask),
-        "thetar2":        mask_surface(props["thetar2"], inside),
+        "thetar1_forest": mask_surface(props["thetar1"], domain),
+        "thetar1_other":  mask_surface(props["thetar1"], domain),
+        "thetar2":        mask_surface(props["thetar2"], domain),
 
-        "alpha1_forest":  mask_surface(props["alpha1"], f_mask),
-        "alpha1_other":   mask_surface(props["alpha1"], o_mask),
-        "alpha2":         mask_surface(props["alpha2"], inside),
+        "alpha1_forest":  mask_surface(props["alpha1"], domain),
+        "alpha1_other":   mask_surface(props["alpha1"], domain),
+        "alpha2":         mask_surface(props["alpha2"], domain),
 
-        "lambda1_forest": mask_surface(props["lambda1"], f_mask),
-        "lambda1_other":  mask_surface(props["lambda1"], o_mask),
-        "lambda2":        mask_surface(props["lambda2"], inside),
+        "lambda1_forest": mask_surface(props["lambda1"], domain),
+        "lambda1_other":  mask_surface(props["lambda1"], domain),
+        "lambda2":        mask_surface(props["lambda2"], domain),
 
-        "ksat1_forest":   mask_surface(props["ksat1"], f_mask),
-        "ksat1_other":    mask_surface(props["ksat1"], o_mask),
-        "ksat2":          mask_surface(props["ksat2"], inside),
+        "ksat1_forest":   mask_surface(props["ksat1"], domain),
+        "ksat1_other":    mask_surface(props["ksat1"], domain),
+        "ksat2":          mask_surface(props["ksat2"], domain),
     }
 
     for name, array in final_maps.items():
         tif_p = os.path.join(OUTPUT_DIR, "maps", f"{name}.tif")
-        map_p = os.path.join(OUTPUT_DIR, "maps", f"{name}.map")
-        master.save(array, tif_p, "float32", NODATA_FLOAT)
-        _gdal_convert(tif_p, map_p, "VS_SCALAR")
-        log(f"  ✔ {name}.map")
+        nc_p = os.path.join(OUTPUT_DIR, "maps", f"{name}.nc")
+        save_aligned(array, tif_p, "float32", NODATA_FLOAT, like=AREA_TIF)
+        gdal_convert_netcdf(tif_p, nc_p)
+        log(f"  ✔ {name}.nc")
         
     return final_maps
 
@@ -336,7 +267,6 @@ def visual_check(maps):
     log("STEP 5 — Generating Visual Validation", "STEP")
     try:
         import matplotlib.pyplot as plt
-        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
         
         def panel(ax, data, title, cmap):
             d = data.copy()
@@ -346,20 +276,27 @@ def visual_check(maps):
             ax.set_title(title, fontsize=10, fontweight='bold')
             ax.axis('off')
 
-        # To plot we visually combine forest + other for a holistic view
-        cmb_thetas = np.where(maps['thetas1_forest'] != NODATA_FLOAT, maps['thetas1_forest'], maps['thetas1_other'])
-        cmb_ksat   = np.where(maps['ksat1_forest'] != NODATA_FLOAT, maps['ksat1_forest'], maps['ksat1_other'])
+        properties = [
+            ("thetas", "Theta Saturation (Volumetric)", "YlGnBu"),
+            ("thetar", "Theta Residual (Volumetric)", "YlGnBu"),
+            ("alpha", "Alpha (van Genuchten)", "viridis"),
+            ("lambda", "Lambda (Brooks-Corey)", "viridis"),
+            ("ksat", "Hydraulic Conductivity Ksat (mm/day)", "Spectral")
+        ]
 
-        panel(axes[0,0], cmb_thetas, "Layer 1 - Theta Saturation (Volumetric)", "YlGnBu")
-        panel(axes[0,1], cmb_ksat, "Layer 1 - Hydraulic Conductivity Ksat (mm/day)", "Spectral")
-        panel(axes[1,0], maps['thetas2'], "Layer 2 - Theta Saturation", "YlGnBu")
-        panel(axes[1,1], maps['ksat2'], "Layer 2 - Ksat (mm/day)", "Spectral")
-        
-        out = os.path.join(OUTPUT_DIR, "soil_visual_check.png")
-        plt.tight_layout()
-        plt.savefig(out, dpi=120)
-        plt.close()
-        log(f"  Visual saved -> {out}")
+        for prop, desc, cmap in properties:
+            fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+            fig.suptitle(f"{desc}", fontsize=14, fontweight='bold')
+            
+            panel(axes[0], maps[f'{prop}1_forest'], f"Layer 1 - Forest", cmap)
+            panel(axes[1], maps[f'{prop}1_other'], f"Layer 1 - Other", cmap)
+            panel(axes[2], maps[f'{prop}2'], f"Layer 2", cmap)
+            
+            out = os.path.join(OUTPUT_DIR, f"soil_visual_check_{prop}.png")
+            plt.tight_layout()
+            plt.savefig(out, dpi=120)
+            plt.close()
+            log(f"  Visual saved -> {out}")
     except ImportError:
         pass
 
@@ -374,25 +311,20 @@ def main():
     print(f"  Grid : Strict master lock to {AREA_TIF} at {RESOLUTION_M}m")
     print("═" * 65 + "\n")
 
-    make_dirs()
+    make_dirs(OUTPUT_DIR)
 
     import rasterio
 
-    # 1. Load the infallible MasterGrid properties
     if not os.path.exists(AREA_TIF) or not os.path.exists(LULC_ALIGNED):
         log("Missing area.tif or lulc_aligned.tif. Run Topo and LULC scripts first.", "ERROR")
         sys.exit(1)
 
-    with rasterio.open(AREA_TIF) as src:
-        master = MasterGrid(src.transform, src.width, src.height, src.crs)
-        area_mask = src.read(1)
+    # Load the canonical grid from area.tif (everything aligns to this)
+    info, area_mask = load_grid(AREA_TIF)
 
     with rasterio.open(LULC_ALIGNED) as src:
         lulc_arr = src.read(1)
 
-    # FIX: verify LULC grid is pixel-aligned with the master grid before any
-    # masking operations.  A shape mismatch would otherwise silently broadcast
-    # in numpy or produce a confusing shape-mismatch error deep in process_soil.
     if lulc_arr.shape != area_mask.shape:
         log(f"ALIGNMENT ERROR: lulc_aligned.tif shape {lulc_arr.shape} "
             f"does not match area.tif shape {area_mask.shape}.", "ERROR")
@@ -400,8 +332,7 @@ def main():
             "the current area.tif.", "ERROR")
         sys.exit(1)
 
-    # 2. Process
-    final_maps = process_soil(master, area_mask, lulc_arr)
+    final_maps = process_soil(info, area_mask, lulc_arr)
     
     # 3. Validation
     visual_check(final_maps)

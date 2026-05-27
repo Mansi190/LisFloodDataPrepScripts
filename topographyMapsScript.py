@@ -18,7 +18,7 @@ warnings.filterwarnings("ignore")
 
 import pipeline_config as _cfg
 from lisflood_utils import (GridInfo, log, check_imports, make_dirs,
-                            gdal_convert_pcraster, gdal_convert_netcdf, load_grid, save_aligned, reproject_to_grid,
+                            gdal_convert_netcdf, load_grid, save_aligned, reproject_to_grid,
                             init_ee)
 
 AREA_TIF        = _cfg.AREA_TIF
@@ -33,30 +33,51 @@ def _run(cmd, name):
         sys.exit(1)
 
 def rasterize_watershed(shp_path):
-    log("STEP 1 — Rasterising watershed to create master grid", "STEP")
+    log("STEP 1 — Rasterising watershed to create fractional master grid", "STEP")
     make_dirs(os.path.join(OUTPUT_DIR, "maps"))
+    make_dirs(os.path.join(OUTPUT_DIR, "raw"))
+    
     out_path = os.path.join(OUTPUT_DIR, "maps", "area.tif")
+    highres_path = os.path.join(OUTPUT_DIR, "raw", "area_30m.tif")
+    fraction_path = os.path.join(OUTPUT_DIR, "raw", "area_fraction.tif")
 
+    # 1. Rasterize at 30m high-resolution
     _run([
         "gdal_rasterize",
         "-burn", "1",
         "-init", "0",
-        "-tr",   str(RESOLUTION_M), str(RESOLUTION_M),
+        "-tr",   "30.0", "30.0",
         "-tap",
         "-ot",   "Byte",
         "-a_nodata", "0",
         "-co",   "COMPRESS=LZW",
-        shp_path, out_path,
-    ], "gdal_rasterize")
+        shp_path, highres_path,
+    ], "gdal_rasterize_30m")
 
-    info, mask_arr = load_grid(out_path)
+    # 2. Upscale to target resolution using exact fractional coverage (average)
+    _run([
+        "gdalwarp",
+        "-r", "average",
+        "-tr", str(RESOLUTION_M), str(RESOLUTION_M),
+        "-tap",
+        "-overwrite",
+        "-co", "COMPRESS=LZW",
+        highres_path, fraction_path
+    ], "gdalwarp_fraction")
+
+    # 3. Create boolean area.tif (any-touch rule)
+    info, fraction_arr = load_grid(fraction_path)
+    mask_arr = np.where(fraction_arr > 0, 1, 0).astype(np.uint8)
+    
+    save_aligned(mask_arr, out_path, "uint8", 0, like=fraction_path)
+
     inside = int(mask_arr.sum())
     log(f"  Inside cells: {inside:,}  ({inside * RESOLUTION_M**2 / 10_000:.1f} ha)")
     log(f"  → {out_path}")
     return out_path, info, mask_arr
 
 def compute_and_download_gee_topo(info):
-    log("STEP 2 - Computing Gradient and Elvstd in GEE...", "STEP")
+    log("STEP 2 - Extracting DEM and Gradient at 30m from GEE...", "STEP")
     
     try:
         import ee
@@ -80,26 +101,23 @@ def compute_and_download_gee_topo(info):
 
     dem = ee.Image("USGS/SRTMGL1_003")
     
+    # Calculate gradient on native 30m DEM
     slope_deg = ee.Terrain.slope(dem)
     gradient = slope_deg.divide(180).multiply(math.pi).tan().rename('gradient')
     
-    elvstd = dem.reduceNeighborhood(
-        reducer=ee.Reducer.stdDev(),
-        kernel=ee.Kernel.square(1, 'pixels')
-    ).rename('elvstd')
-
-    combined = ee.Image([dem.rename('dem'), gradient.toFloat(), elvstd.toFloat()])
+    # Export only DEM and Gradient at 30m
+    combined = ee.Image([dem.rename('dem'), gradient.toFloat()])
     
     raw_dir = os.path.join(OUTPUT_DIR, "raw")
     make_dirs(raw_dir)
     
-    raw_tif = os.path.join(raw_dir, "topo_raw_gee.tif")
+    raw_tif = os.path.join(raw_dir, "topo_raw_gee_30m.tif")
     if not os.path.exists(raw_tif):
         log(f"Downloading GEE topo data to {raw_tif}...")
         geemap.ee_export_image(
             combined,
             filename=raw_tif,
-            scale=30,
+            scale=30.0,
             crs=str(info.crs),
             region=region,
             file_per_band=False
@@ -143,30 +161,65 @@ def compute_ldd_snapped(dem_path, mask_arr, area_tif_path):
     return out_path, ldd_masked
 
 def process_local_topo(raw_tif, mask_arr, info, area_tif_path):
-    log("STEP 3 - Aligning outputs to area.tif...", "STEP")
+    log("STEP 3 - Upscaling and aligning 30m outputs to area.tif...", "STEP")
     tif_paths = {}
     maps_dir = os.path.join(OUTPUT_DIR, "maps")
     
-    band_names = ['dem', 'gradient', 'elvstd']
-    aligned_bands = {}
-    
     with rasterio.open(raw_tif) as src:
         raw_data = src.read()
-        for i, name in enumerate(band_names):
-            band_arr = raw_data[i]
-            src_nd = src.nodata if src.nodata is not None else -9999
-            band_arr[band_arr == src_nd] = np.nan
-            
-            aligned = reproject_to_grid(
-                src_array=band_arr,
-                src_transform=src.transform,
-                src_crs=src.crs,
-                like=area_tif_path,
-                src_nodata=np.nan,
-                dst_nodata=-9999,
-                resampling_method="bilinear"
-            ).astype(np.float32)
-            aligned_bands[name] = aligned
+        dem_30m = raw_data[0]
+        grad_30m = raw_data[1]
+        
+        src_nd = src.nodata if src.nodata is not None else -9999
+        dem_30m[dem_30m == src_nd] = np.nan
+        grad_30m[grad_30m == src_nd] = np.nan
+        
+        log("  Upscaling DEM & Gradient (average)...")
+        # Upscale DEM using average
+        dem_aligned = reproject_to_grid(
+            src_array=dem_30m, src_transform=src.transform, src_crs=src.crs,
+            like=area_tif_path, src_nodata=np.nan, dst_nodata=-9999,
+            resampling_method="average"
+        ).astype(np.float32)
+        
+        # Upscale Gradient using average
+        grad_aligned = reproject_to_grid(
+            src_array=grad_30m, src_transform=src.transform, src_crs=src.crs,
+            like=area_tif_path, src_nodata=np.nan, dst_nodata=-9999,
+            resampling_method="average"
+        ).astype(np.float32)
+
+        log("  Calculating Elvstd locally via sub-grid standard deviation...")
+        # To calculate exact stddev, we must map the 30m DEM directly into the target 300m cells.
+        factor = max(1, int(RESOLUTION_M / 30.0))
+        
+        # Create a temporary empty high-res grid structure perfectly aligned with area.tif bounds
+        import affine
+        hr_transform = info.transform * affine.Affine.scale(1.0/factor, 1.0/factor)
+        
+        # Reproject to this exact high-res grid using bilinear interpolation
+        from rasterio.warp import reproject, Resampling
+        dem_hr_exact = np.full((info.height * factor, info.width * factor), np.nan, dtype=np.float32)
+        reproject(
+            source=dem_30m, destination=dem_hr_exact,
+            src_transform=src.transform, src_crs=src.crs,
+            dst_transform=hr_transform, dst_crs=info.crs,
+            resampling=Resampling.bilinear,
+            src_nodata=np.nan, dst_nodata=np.nan
+        )
+        
+        # Reshape into blocks and calculate standard deviation across the blocks
+        blocks = dem_hr_exact.reshape(info.height, factor, info.width, factor)
+        elvstd_aligned = np.nanstd(blocks, axis=(1, 3)).astype(np.float32)
+        
+        # Fill completely NaN cells with -9999
+        elvstd_aligned[np.isnan(elvstd_aligned)] = -9999
+
+    aligned_bands = {
+        'dem': dem_aligned,
+        'gradient': grad_aligned,
+        'elvstd': elvstd_aligned
+    }
 
     # Save DEM for pysheds
     dem_snapped = aligned_bands['dem']
@@ -236,12 +289,11 @@ def visualize(ldd, gradient, elvstd, mask, info):
             ax.set_title(title, fontsize=9, fontweight="bold")
             ax.axis("off")
 
-        # Create discrete colormap for LDD 1-9
-        ldd_cmap = plt.cm.get_cmap('Set3', 9)
-        panel(axes[0], mask,     "area.nc\n(Mask)",    "Blues",  "Boolean", -0.5)
-        panel(axes[1], ldd,      "ldd.nc\n(NetCDF)",   ldd_cmap, "Flow Dir", -0.5, 1, 9)
-        panel(axes[2], gradient, "gradient.nc\n[m/m]", "YlOrRd", "Slope", 0)
-        panel(axes[3], elvstd,   "elvstd.nc\n[m]",     "viridis","StdDev", 0)
+        # Create continuous colormaps for physical properties
+        panel(axes[0], mask,     "area.tif\n(Master Mask)", "Blues", "0 or 1", nodata=-1)
+        panel(axes[1], ldd,      "ldd.nc\n(NetCDF)",   plt.cm.get_cmap('Set3', 9), "Flow Dir", -0.5, 1, 9)
+        panel(axes[2], gradient, "gradient.nc\n[m/m]",  "YlOrRd", "m/m", 0)
+        panel(axes[3], elvstd,   "elvstd.nc\n[m]",      "Purples", "m", 0)
 
         plt.tight_layout()
         out = os.path.join(OUTPUT_DIR, "TOPO_VISUAL_CHECK.png")
