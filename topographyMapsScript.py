@@ -228,13 +228,14 @@ def process_local_topo(raw_tif, mask_arr, info, area_tif_path):
 
     results = {}
     
-    for name in ['gradient', 'elvstd']:
+    for name in ['gradient', 'elvstd', 'dem']:
         arr = aligned_bands[name]
         
         if name == 'gradient':
             arr = np.where((arr <= 0) | np.isnan(arr), 1e-5, arr)
         elif name == 'elvstd':
             arr = np.where((arr < 0) | np.isnan(arr), 0.0, arr)
+        # For dem, just use the array directly
             
         final = np.where((mask_arr > 0), arr, -9999).astype(np.float32)
         tif_paths[name] = os.path.join(maps_dir, f"{name}.tif")

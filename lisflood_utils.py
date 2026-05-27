@@ -206,23 +206,46 @@ def gdal_convert_pcraster(tif_path, map_path, pcraster_type="VS_SCALAR"):
 
 def gdal_convert_netcdf(tif_path, nc_path):
     """
-    Convert GeoTIFF → NetCDF (.nc) via gdal_translate.
+    Convert GeoTIFF → NetCDF (.nc) using Xarray/Rasterio.
+    This guarantees that the Y-axis coordinates are identical to our
+    other generated files (descending, matching the TIFF transform), 
+    preventing GDAL's default CF-1.5 bottom-up flip which breaks LISVAP.
     Returns True on success.
     """
     try:
-        cmd = [
-            "gdal_translate", "-of", "netCDF",
-            "-co", "FORMAT=NC4",
-            "-co", "COMPRESS=DEFLATE",
-            tif_path, nc_path,
-        ]
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
-        if r.returncode == 0 and os.path.exists(nc_path):
-            return True
-        log(f"gdal_translate stderr: {r.stderr.strip()}", "WARN")
-        return False
+        import xarray as xr
+        import rasterio
+        import os
+        with rasterio.open(tif_path) as src:
+            data = src.read(1)
+            nodata = src.nodata if src.nodata is not None else -9999
+            transform = src.transform
+            crs = src.crs
+            width = src.width
+            height = src.height
+
+        x_coords = [transform.c + (i + 0.5) * transform.a for i in range(width)]
+        y_coords = [transform.f + (i + 0.5) * transform.e for i in range(height)]
+        
+        var_name = "Band1"
+            
+        ds = xr.Dataset(
+            data_vars={
+                var_name: (["y", "x"], data)
+            },
+            coords={
+                "y": y_coords,
+                "x": x_coords
+            },
+            attrs={
+                "crs": str(crs)
+            }
+        )
+        
+        ds.to_netcdf(nc_path, encoding={var_name: {"_FillValue": nodata, "zlib": True, "complevel": 4}})
+        return True
     except Exception as e:
-        log(f"gdal_translate failed: {e}", "WARN")
+        log(f"xarray convert_netcdf failed: {e}", "WARN")
         return False
 
 
