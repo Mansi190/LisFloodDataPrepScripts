@@ -47,6 +47,7 @@ OUTPUT_LULC      = "./lisflood_lulc"
 OUTPUT_LULC_COVER = "./lisflood_lulc_cover"
 OUTPUT_SOIL      = "./lisflood_soil"
 OUTPUT_METEO     = "./lisflood_meteo"
+OUTPUT_LAI       = "./lisflood_lai"
 OUTPUT_CHANNELS  = "./lisflood_channels"
 OUTPUT_GAUGES    = "./lisflood_gauges"
 
