@@ -82,33 +82,44 @@ def fetch_gee_timeseries(info, start_date, end_date):
     raw_dir = os.path.join(OUTPUT_DIR, "raw")
     make_dirs(raw_dir)
     
-    pr_tif = os.path.join(raw_dir, "pr_raw.tif")
-    ta_tif = os.path.join(raw_dir, "ta_raw.tif")
+    def download_in_chunks(img, prefix, chunk_size=60):
+        band_names = img.bandNames().getInfo()
+        total_bands = len(band_names)
+        chunk_files = []
+        for i in range(0, total_bands, chunk_size):
+            chunk_bands = band_names[i:i+chunk_size]
+            chunk_img = img.select(chunk_bands)
+            chunk_file = os.path.join(raw_dir, f"{prefix}_raw_{i}.tif")
+            if not os.path.exists(chunk_file):
+                log(f"  Downloading {prefix} chunk {i//chunk_size + 1}/{(total_bands+chunk_size-1)//chunk_size}...")
+                geemap.ee_export_image(chunk_img, filename=chunk_file, scale=_cfg.RESOLUTION_M, crs=str(info.crs), region=region, file_per_band=False)
+            else:
+                log(f"  Chunk already exists: {chunk_file}")
+            chunk_files.append(chunk_file)
+        return chunk_files
 
-    if not os.path.exists(pr_tif):
-        log(f"  Downloading Precipitation to {pr_tif}...")
-        geemap.ee_export_image(pr_img, filename=pr_tif, scale=_cfg.RESOLUTION_M, crs=str(info.crs), region=region, file_per_band=False)
-    else:
-        log(f"  Raw Precipitation data already exists: {pr_tif}")
-
-    if not os.path.exists(ta_tif):
-        log(f"  Downloading Temperature to {ta_tif}...")
-        geemap.ee_export_image(ta_img, filename=ta_tif, scale=_cfg.RESOLUTION_M, crs=str(info.crs), region=region, file_per_band=False)
-    else:
-        log(f"  Raw Temperature data already exists: {ta_tif}")
+    log("  Downloading Precipitation (chunked)...")
+    pr_tifs = download_in_chunks(pr_img, "pr")
+    
+    log("  Downloading Temperature (chunked)...")
+    ta_tifs = download_in_chunks(ta_img, "ta")
         
-    return pr_tif, ta_tif
+    return pr_tifs, ta_tifs
 
-def assemble_netcdf(tif_path, var_name, info, mask, dates, nc_path):
+def assemble_netcdf(tif_paths, var_name, info, mask, dates, nc_path):
     log(f"  Processing NetCDF for {var_name}...")
     
     # Generate coordinates exactly from area.tif
     x_coords = [info.transform.c + (i + 0.5) * info.transform.a for i in range(info.width)]
     y_coords = [info.transform.f + (i + 0.5) * info.transform.e for i in range(info.height)]
     
-    with rasterio.open(tif_path) as src:
-        raw_data = src.read()
-        src_nd = src.nodata if src.nodata is not None else -9999
+    raw_data_list = []
+    for tif_path in tif_paths:
+        with rasterio.open(tif_path) as src:
+            raw_data_list.append(src.read())
+            src_nd = src.nodata if src.nodata is not None else -9999
+            
+    raw_data = np.concatenate(raw_data_list, axis=0) if raw_data_list else np.empty((0, info.height, info.width))
         
     # The number of bands in the downloaded TIF should match our date range length
     num_days = len(dates)
@@ -154,7 +165,7 @@ def assemble_netcdf(tif_path, var_name, info, mask, dates, nc_path):
     log(f"  ✔ Saved {nc_path}")
     return ds
 
-def process_and_save(pr_tif, ta_tif, info, mask):
+def process_and_save(pr_tifs, ta_tifs, info, mask):
     log("STEP 2 - Assembling NetCDF time-series", "STEP")
     maps_dir = os.path.join(OUTPUT_DIR, "maps")
     make_dirs(maps_dir)
@@ -164,8 +175,8 @@ def process_and_save(pr_tif, ta_tif, info, mask):
     pr_nc = os.path.join(maps_dir, "pr.nc")
     ta_nc = os.path.join(maps_dir, "ta.nc")
     
-    ds_pr = assemble_netcdf(pr_tif, "pr", info, mask, dates, pr_nc)
-    ds_ta = assemble_netcdf(ta_tif, "ta", info, mask, dates, ta_nc)
+    ds_pr = assemble_netcdf(pr_tifs, "pr", info, mask, dates, pr_nc)
+    ds_ta = assemble_netcdf(ta_tifs, "ta", info, mask, dates, ta_nc)
     
     return ds_pr, ds_ta
 
@@ -224,9 +235,9 @@ def main():
     
     info, mask = load_grid(AREA_TIF)
     
-    pr_tif, ta_tif = fetch_gee_timeseries(info, START_DATE, END_DATE)
+    pr_tifs, ta_tifs = fetch_gee_timeseries(info, START_DATE, END_DATE)
     
-    ds_pr, ds_ta = process_and_save(pr_tif, ta_tif, info, mask)
+    ds_pr, ds_ta = process_and_save(pr_tifs, ta_tifs, info, mask)
     
     visualize(ds_pr, ds_ta, info)
     

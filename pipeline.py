@@ -32,13 +32,14 @@ import pipeline_config as cfg
 # ─────────────────────────────────────────────────────────────────────────────
 
 STEPS = [
-    ("topo",   "topographyMapsScript.py"),
-    ("lulc",   "lisflood_frac_lulc_preprocessing.py"),
-    ("soil",   "lisflood_soil_preprocessing.py"),
-    ("chan",   "channnels.py"),
-    ("gauges", "lisflood_gauges_sites.py"),
-    ("meteo",  "lisflood_meteo_penman.py"),
-    ("lai",    "LAI_Landsat.py"),
+    ("topo",       "topographyMapsScript.py"),
+    ("lulc",       "lisflood_frac_lulc_preprocessing.py"),
+    ("lulc_cover", "lisflood_lulc_cover.py"),
+    ("soil",       "lisflood_soil_preprocessing.py"),
+    ("chan",       "channnels.py"),
+    ("gauges",     "lisflood_gauges_sites.py"),
+    ("meteo",      "lisflood_meteo_forcing.py"),
+    ("lai",        "lisflood_lai_forcing.py"),
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -53,14 +54,14 @@ def _nc(base, *names):
     return [os.path.join(base, f"{n}.nc") for n in names]
 
 EXPECTED_OUTPUTS = {
-    "topo": _maps(cfg.OUTPUT_TOPO, "area", "dem", "ldd", "gradient", "elvstd"),
-    "lulc": _maps(cfg.OUTPUT_LULC,
-                  "fracwater", "fracsealed", "fracforest", "fracother",
-                  "cropcoef_forest", "cropcoef_other",
-                  "crgrnum_forest",  "crgrnum_other",
-                  "mannings_forest", "mannings_other",
-                  "soildep1_forest", "soildep1_other",
-                  "soildep2_forest", "soildep2_other"),
+    "topo": _nc(cfg.OUTPUT_TOPO + "/maps", "area", "dem", "ldd", "gradient", "elvstd"),
+    "lulc": _nc(cfg.OUTPUT_LULC + "/maps", "fracwater", "fracsealed", "fracforest", "fracother"),
+    "lulc_cover": _nc(cfg.OUTPUT_LULC_COVER + "/maps",
+                      "cropcoef_forest", "cropcoef_other",
+                      "crgrnum_forest",  "crgrnum_other",
+                      "mannings_forest", "mannings_other",
+                      "soildep1_forest", "soildep1_other",
+                      "soildep2_forest", "soildep2_other"),
     "soil": _nc(cfg.OUTPUT_SOIL + "/maps",
                   "thetas1_forest", "thetas1_other", "thetas2",
                   "thetar1_forest", "thetar1_other", "thetar2",
@@ -71,8 +72,8 @@ EXPECTED_OUTPUTS = {
                  "chan", "changrad", "chanman", "chanleng",
                  "chanbw", "chans", "chanbnkf"),
     "gauges": _maps(cfg.OUTPUT_GAUGES, "gauges", "sites"),
-    "meteo": _nc(cfg.OUTPUT_METEO + "/penman", "pr", "ta", "et", "e", "es"),
-    "lai": [],   # validated separately (12 × 2 monthly files)
+    "meteo": _nc(cfg.OUTPUT_METEO + "/maps", "pr", "ta"),
+    "lai": _nc(cfg.OUTPUT_LAI + "/maps", "lai_forest", "lai_other"),
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -154,7 +155,7 @@ def run_step(step_name, script_file, dry_run=False):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def print_status():
-    crs = cfg.resolve_crs()
+    crs = cfg.TARGET_CRS or "Auto-detected"
     print(f"\n{'═'*62}")
     print(f"  LISFLOOD Pipeline Status")
     print(f"  ROI  : {cfg.ROI_SHAPEFILE}")
@@ -172,12 +173,6 @@ def print_status():
             print(f"           missing: {os.path.relpath(p)}")
         total_present += len(present)
         total_missing += len(missing)
-
-    # LAI monthly check
-    lai_dir = "./lai_outputs_landsat/maps"
-    lai_present = len(list(Path(lai_dir).glob("lai_forest_*.map"))) if os.path.isdir(lai_dir) else 0
-    lai_status  = "✔" if lai_present == 12 else ("⚠" if lai_present > 0 else "✘")
-    print(f"  {lai_status}  lai    {lai_present}/12 forest maps  (+ {lai_present}/12 other maps)")
 
     print(f"\n  Total: {total_present} present, {total_missing} missing")
     print(f"{'═'*62}\n")
@@ -202,12 +197,13 @@ def generate_ini():
     """
     topo   = cfg.OUTPUT_TOPO + "/maps"
     lulc   = cfg.OUTPUT_LULC + "/maps"
+    lulc_c = cfg.OUTPUT_LULC_COVER + "/maps"
     soil   = cfg.OUTPUT_SOIL + "/maps"
     chan   = cfg.OUTPUT_CHANNELS + "/maps"
     gauges = cfg.OUTPUT_GAUGES + "/maps"
-    meteo  = cfg.OUTPUT_METEO + "/penman"
-    lai    = "./lai_outputs_landsat/maps"
-    crs   = cfg.resolve_crs()
+    meteo  = cfg.OUTPUT_METEO + "/maps"
+    lai    = cfg.OUTPUT_LAI + "/maps"
+    crs   = cfg.TARGET_CRS or "Auto-detected"
 
     ini_path = "./lisflood_settings.xml"
 
@@ -251,32 +247,32 @@ def generate_ini():
   <!-- ══════════════════════════════════════════════════════════════
        SPATIAL MAPS — TOPOGRAPHY
   ═══════════════════════════════════════════════════════════════ -->
-  <textvar name="MaskMap"    value="{topo}/area.map"/>
-  <textvar name="Dem"        value="{topo}/dem.map"/>
-  <textvar name="Ldd"        value="{topo}/ldd.map"/>
-  <textvar name="Grad"       value="{topo}/gradient.map"/>
-  <textvar name="ElevStdev"  value="{topo}/elvstd.map"/>
+  <textvar name="MaskMap"    value="{topo}/area.nc"/>
+  <textvar name="Dem"        value="{topo}/dem.nc"/>
+  <textvar name="Ldd"        value="{topo}/ldd.nc"/>
+  <textvar name="Grad"       value="{topo}/gradient.nc"/>
+  <textvar name="ElevStdev"  value="{topo}/elvstd.nc"/>
 
   <!-- ══════════════════════════════════════════════════════════════
        SPATIAL MAPS — LAND USE / LAND COVER
   ═══════════════════════════════════════════════════════════════ -->
-  <textvar name="FracWater"  value="{lulc}/fracwater.map"/>
-  <textvar name="FracSealed" value="{lulc}/fracsealed.map"/>
-  <textvar name="FracForest" value="{lulc}/fracforest.map"/>
-  <textvar name="FracOther"  value="{lulc}/fracother.map"/>
+  <textvar name="FracWater"  value="{lulc}/fracwater.nc"/>
+  <textvar name="FracSealed" value="{lulc}/fracsealed.nc"/>
+  <textvar name="FracForest" value="{lulc}/fracforest.nc"/>
+  <textvar name="FracOther"  value="{lulc}/fracother.nc"/>
 
-  <textvar name="CropCoefForest"  value="{lulc}/cropcoef_forest.map"/>
-  <textvar name="CropCoefOther"   value="{lulc}/cropcoef_other.map"/>
-  <textvar name="CropGroupForest" value="{lulc}/crgrnum_forest.map"/>
-  <textvar name="CropGroupOther"  value="{lulc}/crgrnum_other.map"/>
+  <textvar name="CropCoefForest"  value="{lulc_c}/cropcoef_forest.nc"/>
+  <textvar name="CropCoefOther"   value="{lulc_c}/cropcoef_other.nc"/>
+  <textvar name="CropGroupForest" value="{lulc_c}/crgrnum_forest.nc"/>
+  <textvar name="CropGroupOther"  value="{lulc_c}/crgrnum_other.nc"/>
 
-  <textvar name="Manning"        value="{lulc}/mannings_forest.map"/>  <!-- forest -->
-  <textvar name="ManningSoil"    value="{lulc}/mannings_other.map"/>   <!-- other  -->
+  <textvar name="Manning"        value="{lulc_c}/mannings_forest.nc"/>  <!-- forest -->
+  <textvar name="ManningSoil"    value="{lulc_c}/mannings_other.nc"/>   <!-- other  -->
 
-  <textvar name="SoilDepth1a"    value="{lulc}/soildep1_forest.map"/>
-  <textvar name="SoilDepth1b"    value="{lulc}/soildep1_other.map"/>
-  <textvar name="SoilDepth2a"    value="{lulc}/soildep2_forest.map"/>
-  <textvar name="SoilDepth2b"    value="{lulc}/soildep2_other.map"/>
+  <textvar name="SoilDepth1a"    value="{lulc_c}/soildep1_forest.nc"/>
+  <textvar name="SoilDepth1b"    value="{lulc_c}/soildep1_other.nc"/>
+  <textvar name="SoilDepth2a"    value="{lulc_c}/soildep2_forest.nc"/>
+  <textvar name="SoilDepth2b"    value="{lulc_c}/soildep2_other.nc"/>
 
   <!-- ══════════════════════════════════════════════════════════════
        SPATIAL MAPS — SOIL HYDRAULIC PROPERTIES
@@ -313,11 +309,10 @@ def generate_ini():
   <textvar name="ChanDepthThreshold" value="{chan}/chanbnkf.nc"/>
 
   <!-- ══════════════════════════════════════════════════════════════
-       SPATIAL MAPS — LAI (12 monthly files)
-       LISFLOOD expects files named lai_forest_DDMMYYYY.map
+       SPATIAL MAPS — LAI
   ═══════════════════════════════════════════════════════════════ -->
-  <textvar name="LAIForest" value="{lai}/lai_forest_[DDMMYYYY].map"/>
-  <textvar name="LAIOther"  value="{lai}/lai_other_[DDMMYYYY].map"/>
+  <textvar name="LAIForest" value="{lai}/lai_forest.nc"/>
+  <textvar name="LAIOther"  value="{lai}/lai_other.nc"/>
 
   <!-- ══════════════════════════════════════════════════════════════
        GAUGES AND MONITORING SITES
@@ -402,7 +397,7 @@ def main():
     args = parser.parse_args()
 
     # Validate config
-    crs = cfg.resolve_crs()
+    crs = cfg.TARGET_CRS or "Auto-detected"
 
     if args.check:
         print_status()

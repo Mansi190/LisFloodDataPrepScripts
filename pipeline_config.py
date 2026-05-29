@@ -30,7 +30,7 @@ import os
 # Path to your watershed boundary file.
 # Supported formats: .shp (with .shx/.dbf/.prj), .gpkg, .geojson
 # Any CRS is accepted — the pipeline reprojects automatically.
-ROI_SHAPEFILE    = "./ShapeFile/ArariaShapefile.shp"
+ROI_SHAPEFILE    = "./ShapeFile/Watershed_UTM.shp"
 
 # ── Spatial grid ──────────────────────────────────────────────────────────────
 RESOLUTION_M     = 300          # pixel size in metres
@@ -38,7 +38,7 @@ RESOLUTION_M     = 300          # pixel size in metres
 # ── CRS ───────────────────────────────────────────────────────────────────────
 # None  → auto-detect UTM zone from ROI_SHAPEFILE centroid (recommended)
 # str   → override, e.g. "EPSG:32645"  (UTM Zone 45N, Bihar)
-TARGET_CRS       = None
+TARGET_CRS       = "EPSG:32645"
 
 
 # ── Output directories ────────────────────────────────────────────────────────

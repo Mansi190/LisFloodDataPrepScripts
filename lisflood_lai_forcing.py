@@ -48,19 +48,35 @@ def fetch_gee_timeseries(info, start_date, end_date):
         geodesic=False
     )
 
-    # Helper function to process each 4-day image
-    def process_lai(img):
+    # Get 10m LULC corestack masks
+    lulc10m = ee.Image("projects/corestack-datasets/assets/datasets/LULC_v3_river_basin/pan_india_lulc_v3_2024_2025")
+    lulc_label = lulc10m.select('predicted_label')
+    forestMask = lulc_label.eq(6)
+    otherMask = lulc_label.eq(5).Or(lulc_label.eq(7)).Or(lulc_label.gte(8).And(lulc_label.lte(12)))
+
+    # Helper function to process each 4-day image (Forest)
+    def process_lai_forest(img):
         lai = img.select('Lai')
-        # MODIS LAI valid range is 0 to 100. Values > 100 are fill values.
-        mask = lai.lte(100)
-        # Apply mask and scale factor 0.1
-        val = lai.updateMask(mask).multiply(0.1)
+        valid_mask = lai.lte(100)
+        # Apply valid mask, then apply 10m forest mask, then scale
+        val = lai.updateMask(valid_mask).updateMask(forestMask).multiply(0.1)
         
-        # Average upscale to our grid
         upscaled = val.reduceResolution(reducer=ee.Reducer.mean(), maxPixels=1024) \
                       .reproject(crs=str(info.crs), scale=_cfg.RESOLUTION_M) \
-                      .unmask(-9999) # Explicitly unmask to -9999
+                      .unmask(-9999)
+        date_str = img.date().format('YYYYMMdd')
+        return upscaled.rename([date_str]).set('system:time_start', img.get('system:time_start'))
+
+    # Helper function to process each 4-day image (Other)
+    def process_lai_other(img):
+        lai = img.select('Lai')
+        valid_mask = lai.lte(100)
+        # Apply valid mask, then apply 10m other mask, then scale
+        val = lai.updateMask(valid_mask).updateMask(otherMask).multiply(0.1)
         
+        upscaled = val.reduceResolution(reducer=ee.Reducer.mean(), maxPixels=1024) \
+                      .reproject(crs=str(info.crs), scale=_cfg.RESOLUTION_M) \
+                      .unmask(-9999)
         date_str = img.date().format('YYYYMMdd')
         return upscaled.rename([date_str]).set('system:time_start', img.get('system:time_start'))
 
@@ -74,37 +90,57 @@ def fetch_gee_timeseries(info, start_date, end_date):
                 .filterBounds(region) \
                 .filterDate(fetch_start, fetch_end)
     
-    lai_mapped = lai_col.map(process_lai)
+    lai_forest_col = lai_col.map(process_lai_forest)
+    lai_other_col = lai_col.map(process_lai_other)
     
-    # Extract the actual dates of the composite images from GEE
-    dates_list_gee = lai_mapped.aggregate_array('system:time_start').getInfo()
+    # Extract the actual dates
+    dates_list_gee = lai_forest_col.aggregate_array('system:time_start').getInfo()
     obs_dates = pd.to_datetime(dates_list_gee, unit='ms')
     
-    lai_img = lai_mapped.toBands()  # Collapse time to bands
+    lai_forest_img = lai_forest_col.toBands()
+    lai_other_img = lai_other_col.toBands()
 
     # --- DOWNLOAD ---
     raw_dir = os.path.join(OUTPUT_DIR, "raw")
     make_dirs(raw_dir)
     
-    lai_tif = os.path.join(raw_dir, "lai_raw.tif")
+    def download_in_chunks(img, prefix, chunk_size=60):
+        band_names = img.bandNames().getInfo()
+        total_bands = len(band_names)
+        chunk_files = []
+        for i in range(0, total_bands, chunk_size):
+            chunk_bands = band_names[i:i+chunk_size]
+            chunk_img = img.select(chunk_bands)
+            chunk_file = os.path.join(raw_dir, f"{prefix}_raw_{i}.tif")
+            if not os.path.exists(chunk_file):
+                log(f"  Downloading {prefix} chunk {i//chunk_size + 1}/{(total_bands+chunk_size-1)//chunk_size}...")
+                geemap.ee_export_image(chunk_img, filename=chunk_file, scale=_cfg.RESOLUTION_M, crs=str(info.crs), region=region, file_per_band=False)
+            else:
+                log(f"  Chunk already exists: {chunk_file}")
+            chunk_files.append(chunk_file)
+        return chunk_files
 
-    if not os.path.exists(lai_tif):
-        log(f"  Downloading LAI to {lai_tif}...")
-        geemap.ee_export_image(lai_img, filename=lai_tif, scale=_cfg.RESOLUTION_M, crs=str(info.crs), region=region, file_per_band=False)
-    else:
-        log(f"  Raw LAI data already exists: {lai_tif}")
+    log("  Downloading Forest LAI (chunked)...")
+    lai_forest_tifs = download_in_chunks(lai_forest_img, "lai_forest")
+    
+    log("  Downloading Other LAI (chunked)...")
+    lai_other_tifs = download_in_chunks(lai_other_img, "lai_other")
         
-    return lai_tif, obs_dates
+    return lai_forest_tifs, lai_other_tifs, obs_dates
 
-def assemble_netcdf(tif_path, info, base_mask, lulc_mask, obs_dates, start_date, end_date, nc_path):
+def assemble_netcdf(tif_paths, info, base_mask, lulc_mask, obs_dates, start_date, end_date, nc_path):
     log(f"  Processing NetCDF for {os.path.basename(nc_path)}...")
     
     # Generate coordinates exactly from area.tif
     x_coords = [info.transform.c + (i + 0.5) * info.transform.a for i in range(info.width)]
     y_coords = [info.transform.f + (i + 0.5) * info.transform.e for i in range(info.height)]
     
-    with rasterio.open(tif_path) as src:
-        raw_data = src.read()
+    raw_data_list = []
+    for tif_path in tif_paths:
+        with rasterio.open(tif_path) as src:
+            raw_data_list.append(src.read())
+            
+    raw_data = np.concatenate(raw_data_list, axis=0) if raw_data_list else np.empty((0, info.height, info.width))
         
     num_obs = len(obs_dates)
     if raw_data.shape[0] < num_obs:
@@ -162,7 +198,7 @@ def assemble_netcdf(tif_path, info, base_mask, lulc_mask, obs_dates, start_date,
     log(f"  ✔ Saved {nc_path}")
     return ds_daily
 
-def process_and_save(lai_tif, obs_dates, info, mask):
+def process_and_save(lai_forest_tifs, lai_other_tifs, obs_dates, info, mask):
     log("STEP 2 - Assembling and Interpolating NetCDF time-series", "STEP")
     maps_dir = os.path.join(OUTPUT_DIR, "maps")
     make_dirs(maps_dir)
@@ -187,8 +223,8 @@ def process_and_save(lai_tif, obs_dates, info, mask):
     lai_forest_nc = os.path.join(maps_dir, "lai_forest.nc")
     lai_other_nc = os.path.join(maps_dir, "lai_other.nc")
     
-    ds_forest = assemble_netcdf(lai_tif, info, mask, fracforest, obs_dates, START_DATE, END_DATE, lai_forest_nc)
-    ds_other = assemble_netcdf(lai_tif, info, mask, fracother, obs_dates, START_DATE, END_DATE, lai_other_nc)
+    ds_forest = assemble_netcdf(lai_forest_tifs, info, mask, fracforest, obs_dates, START_DATE, END_DATE, lai_forest_nc)
+    ds_other = assemble_netcdf(lai_other_tifs, info, mask, fracother, obs_dates, START_DATE, END_DATE, lai_other_nc)
     
     return ds_forest, ds_other
 
@@ -242,9 +278,9 @@ def main():
     
     info, mask = load_grid(AREA_TIF)
     
-    lai_tif, obs_dates = fetch_gee_timeseries(info, START_DATE, END_DATE)
+    lai_forest_tifs, lai_other_tifs, obs_dates = fetch_gee_timeseries(info, START_DATE, END_DATE)
     
-    ds_forest, ds_other = process_and_save(lai_tif, obs_dates, info, mask)
+    ds_forest, ds_other = process_and_save(lai_forest_tifs, lai_other_tifs, obs_dates, info, mask)
     
     visualize(ds_forest, ds_other, info)
     

@@ -309,6 +309,11 @@ def process_local_channels(raw_tif, mask_arr, info):
     acc = grid.accumulation(fdir)
     
     acc_arr = np.array(acc).astype(np.float32)
+    
+    # Save facc_snapped.tif which is required by lisflood_gauges_sites.py
+    facc_path = os.path.join(OUTPUT_DIR, "raw", "facc_snapped.tif")
+    save_aligned(acc_arr, facc_path, "float32", -9999, like=AREA_TIF)
+    
     area_km2 = acc_arr * (RESOLUTION_M**2 / 1_000_000)
     
     chanbnkf = 0.27 * (area_km2 ** 0.33)

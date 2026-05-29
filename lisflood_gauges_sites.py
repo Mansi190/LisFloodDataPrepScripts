@@ -91,7 +91,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 import pipeline_config as _cfg
-from lisflood_utils import (log, make_dirs, gdal_convert,
+from lisflood_utils import (log, make_dirs, gdal_convert_pcraster,
                             load_grid, save_aligned)
 
 
@@ -513,7 +513,7 @@ def save_maps(gauges_arr, sites_arr, info):
         tif = os.path.join(maps_dir, f"{name}.tif")
         mp  = os.path.join(maps_dir, f"{name}.map")
         save_aligned(arr, tif, "int16", 0, like=AREA_TIF)
-        ok = gdal_convert(tif, mp, "VS_NOMINAL")
+        ok = gdal_convert_pcraster(tif, mp, "VS_NOMINAL")
         log(f"  {name}.map  {'✔' if ok else '⚠  run gdal_translate manually'}")
 
 
@@ -539,6 +539,9 @@ def write_report(records):
 # =============================================================================
 
 def main():
+    make_dirs(OUTPUT_DIR)
+    info, mask, chan, facc, ldd      = load_inputs()
+
     print("\n" + "═" * 62)
     print("  LISFLOOD GAUGES & SITES MAP GENERATOR")
     print(f"  CRS         : {info.crs}")
@@ -546,10 +549,6 @@ def main():
     print(f"  User gauges : {len(_cfg.GAUGE_LOCATIONS)}")
     print(f"  Extra sites : {len(_cfg.SITE_LOCATIONS)}")
     print("═" * 62 + "\n")
-
-    make_dirs(OUTPUT_DIR)
-
-    info, mask, chan, facc, ldd      = load_inputs()
     outlet_rc                       = detect_outlet(chan, facc, mask, info)
     confluences                     = detect_confluences(chan, ldd, mask, facc, outlet_rc)
     user_gauges                     = place_user_gauges(chan, info)
