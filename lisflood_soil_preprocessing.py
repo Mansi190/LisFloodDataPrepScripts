@@ -228,9 +228,17 @@ def process_soil(info, area_mask, lulc_arr):
     valid_lulc = (lulc_arr != NODATA_INT)
     domain = inside & valid_lulc
 
-    # We enforce NODATA_FLOAT strictly outside the masks
     def mask_surface(arr, filter_mask):
-        return np.where(filter_mask, arr, NODATA_FLOAT).astype(np.float32)
+        masked = np.where(filter_mask, arr, NODATA_FLOAT).astype(np.float32)
+        inside = masked[filter_mask]
+        nans = np.isnan(inside)
+        if nans.any():
+            mean_val = np.nanmean(inside)
+            if np.isnan(mean_val):
+                mean_val = 0.0
+            nan_indices = np.isnan(masked) & filter_mask
+            masked[nan_indices] = mean_val
+        return masked
 
     final_maps = {
         "thetas1_forest": mask_surface(props["thetas1"], domain),
