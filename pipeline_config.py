@@ -1,3 +1,9 @@
+
+import numpy as np
+if not hasattr(np, 'in1d'):
+    # Monkeypatch for pysheds compatibility with numpy 2.0+
+    np.in1d = lambda ar1, ar2, assume_unique=False, invert=False: np.isin(ar1, ar2, assume_unique=assume_unique, invert=invert)
+
 """
 pipeline_config.py — Single source of truth for all LISFLOOD data-prep scripts.
 
@@ -30,7 +36,7 @@ import os
 # Path to your watershed boundary file.
 # Supported formats: .shp (with .shx/.dbf/.prj), .gpkg, .geojson
 # Any CRS is accepted — the pipeline reprojects automatically.
-ROI_SHAPEFILE    = "./ShapeFile/Watershed_UTM.shp"
+ROI_SHAPEFILE    = "./ShapeFile/Watershed.shp"
 
 # ── Spatial grid ──────────────────────────────────────────────────────────────
 RESOLUTION_M     = 300          # pixel size in metres
@@ -38,18 +44,22 @@ RESOLUTION_M     = 300          # pixel size in metres
 # ── CRS ───────────────────────────────────────────────────────────────────────
 # None  → auto-detect UTM zone from ROI_SHAPEFILE centroid (recommended)
 # str   → override, e.g. "EPSG:32645"  (UTM Zone 45N, Bihar)
-TARGET_CRS       = "EPSG:32645"
+TARGET_CRS       = "EPSG:32643"
 
 
 # ── Output directories ────────────────────────────────────────────────────────
-OUTPUT_TOPO      = "./lisflood_topography"
-OUTPUT_LULC      = "./lisflood_lulc"
-OUTPUT_LULC_COVER = "./lisflood_lulc_cover"
-OUTPUT_SOIL      = "./lisflood_soil"
-OUTPUT_METEO     = "./lisflood_meteo"
-OUTPUT_LAI       = "./lisflood_lai"
-OUTPUT_CHANNELS  = "./lisflood_channels"
-OUTPUT_GAUGES    = "./lisflood_gauges"
+BASE_DIR         = "./output_dataset"
+DIR_MAPS         = os.path.join(BASE_DIR, "maps")
+DIR_FRACTION     = os.path.join(DIR_MAPS, "fraction")
+DIR_SOILHYD      = os.path.join(DIR_MAPS, "soilhyd")
+DIR_TABLE2MAP    = os.path.join(DIR_MAPS, "table2map")
+DIR_TABLES       = os.path.join(BASE_DIR, "tables")
+DIR_METEO        = os.path.join(BASE_DIR, "meteo")
+DIR_LAI          = os.path.join(BASE_DIR, "lai")
+DIR_LAI_FOREST   = os.path.join(DIR_LAI, "forest")
+DIR_LAI_OTHER    = os.path.join(DIR_LAI, "other")
+DIR_OUT          = os.path.join(BASE_DIR, "out")
+DIR_RAW          = os.path.join(BASE_DIR, "raw")
 
 # ── Gauges & sites ────────────────────────────────────────────────────────────
 # Maximum search radius (m) when snapping a coordinate to the nearest channel cell.
@@ -96,10 +106,10 @@ SOIL_DEPTH_L2_MM = sum(SOIL_DEPTHS_L2_WEIGHTS) * 10   # 1400 mm
 # =============================================================================
 
 # area.tif is the master grid written by topographyMapsScript.py
-AREA_TIF      = os.path.join(OUTPUT_TOPO, "maps", "area.tif")
+AREA_TIF      = os.path.join(DIR_MAPS, "area.tif")
 
 # lulc.tif is written by lisflood_frac_lulc_preprocessing.py
-LULC_ALIGNED  = os.path.join(OUTPUT_LULC, "maps", "lulc.tif")
+LULC_ALIGNED  = os.path.join(DIR_FRACTION, "lulc.tif")
 
 # Common nodata sentinels
 NODATA_FLOAT  = -9999.0
@@ -138,7 +148,7 @@ def resolve_mean_elevation():
     Requires topographyMapsScript.py to have run first.
     Falls back to 0 m (sea level) if area.tif is not yet available.
     """
-    dem_tif = os.path.join(OUTPUT_TOPO, "maps", "dem.tif")
+    dem_tif = os.path.join(DIR_MAPS, "dem.tif")
     if not os.path.exists(dem_tif):
         return 0.0
     try:

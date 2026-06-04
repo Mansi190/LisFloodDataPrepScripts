@@ -19,7 +19,7 @@ START_DATE = "2024-01-01"
 END_DATE   = "2024-12-31"
 
 AREA_TIF   = _cfg.AREA_TIF
-OUTPUT_DIR = _cfg.OUTPUT_LAI
+OUTPUT_DIR = _cfg.DIR_LAI
 NODATA_VAL = _cfg.NODATA_FLOAT
 
 # =============================================================================
@@ -48,31 +48,12 @@ def fetch_gee_timeseries(info, start_date, end_date):
         geodesic=False
     )
 
-    # Get 10m LULC corestack masks
-    lulc10m = ee.Image("projects/corestack-datasets/assets/datasets/LULC_v3_river_basin/pan_india_lulc_v3_2024_2025")
-    lulc_label = lulc10m.select('predicted_label')
-    forestMask = lulc_label.eq(6)
-    otherMask = lulc_label.eq(5).Or(lulc_label.eq(7)).Or(lulc_label.gte(8).And(lulc_label.lte(12)))
-
-    # Helper function to process each 4-day image (Forest)
-    def process_lai_forest(img):
+    # Helper function to process each 4-day image (Bulk LAI)
+    def process_lai_bulk(img):
         lai = img.select('Lai')
         valid_mask = lai.lte(100)
-        # Apply valid mask, then apply 10m forest mask, then scale
-        val = lai.updateMask(valid_mask).updateMask(forestMask).multiply(0.1)
-        
-        upscaled = val.reduceResolution(reducer=ee.Reducer.mean(), maxPixels=1024) \
-                      .reproject(crs=str(info.crs), scale=_cfg.RESOLUTION_M) \
-                      .unmask(-9999)
-        date_str = img.date().format('YYYYMMdd')
-        return upscaled.rename([date_str]).set('system:time_start', img.get('system:time_start'))
-
-    # Helper function to process each 4-day image (Other)
-    def process_lai_other(img):
-        lai = img.select('Lai')
-        valid_mask = lai.lte(100)
-        # Apply valid mask, then apply 10m other mask, then scale
-        val = lai.updateMask(valid_mask).updateMask(otherMask).multiply(0.1)
+        # Apply valid mask, then scale
+        val = lai.updateMask(valid_mask).multiply(0.1)
         
         upscaled = val.reduceResolution(reducer=ee.Reducer.mean(), maxPixels=1024) \
                       .reproject(crs=str(info.crs), scale=_cfg.RESOLUTION_M) \
@@ -90,18 +71,16 @@ def fetch_gee_timeseries(info, start_date, end_date):
                 .filterBounds(region) \
                 .filterDate(fetch_start, fetch_end)
     
-    lai_forest_col = lai_col.map(process_lai_forest)
-    lai_other_col = lai_col.map(process_lai_other)
+    lai_bulk_col = lai_col.map(process_lai_bulk)
     
     # Extract the actual dates
-    dates_list_gee = lai_forest_col.aggregate_array('system:time_start').getInfo()
+    dates_list_gee = lai_bulk_col.aggregate_array('system:time_start').getInfo()
     obs_dates = pd.to_datetime(dates_list_gee, unit='ms')
     
-    lai_forest_img = lai_forest_col.toBands()
-    lai_other_img = lai_other_col.toBands()
+    lai_bulk_img = lai_bulk_col.toBands()
 
     # --- DOWNLOAD ---
-    raw_dir = os.path.join(OUTPUT_DIR, "raw")
+    raw_dir = _cfg.DIR_RAW
     make_dirs(raw_dir)
     
     def download_in_chunks(img, prefix, chunk_size=60):
@@ -120,13 +99,10 @@ def fetch_gee_timeseries(info, start_date, end_date):
             chunk_files.append(chunk_file)
         return chunk_files
 
-    log("  Downloading Forest LAI (chunked)...")
-    lai_forest_tifs = download_in_chunks(lai_forest_img, "lai_forest")
-    
-    log("  Downloading Other LAI (chunked)...")
-    lai_other_tifs = download_in_chunks(lai_other_img, "lai_other")
+    log("  Downloading Bulk LAI (chunked)...")
+    lai_bulk_tifs = download_in_chunks(lai_bulk_img, "lai_bulk")
         
-    return lai_forest_tifs, lai_other_tifs, obs_dates
+    return lai_bulk_tifs, obs_dates
 
 def assemble_netcdf(tif_paths, info, base_mask, lulc_mask, obs_dates, start_date, end_date, nc_path):
     log(f"  Processing NetCDF for {os.path.basename(nc_path)}...")
@@ -178,9 +154,13 @@ def assemble_netcdf(tif_paths, info, base_mask, lulc_mask, obs_dates, start_date
     # Generate daily dates
     daily_dates = pd.date_range(start=start_date, end=end_date, freq='D')
     
-    # Interpolate linearly over time and then reindex to daily dates
-    # We use resample('1D').interpolate('linear') to fill the gaps, then sel(time=daily_dates)
-    ds_daily = ds_obs.resample(time="1D").interpolate("linear").sel(time=daily_dates)
+    # Aggregate duplicate dates from tiled MODIS collections to avoid InvalidIndexError
+    ds_obs = ds_obs.groupby("time").mean(skipna=True)
+    
+    # Interpolate linearly over time, ffill/bfill gaps, and then reindex to daily dates
+    ds_daily = ds_obs.resample(time="1D").interpolate("linear") \
+                     .bfill(dim="time").ffill(dim="time") \
+                     .sel(time=daily_dates)
     
     # Replace remaining NaNs with NODATA_VAL
     lai_daily_vals = ds_daily["lai"].values
@@ -198,33 +178,118 @@ def assemble_netcdf(tif_paths, info, base_mask, lulc_mask, obs_dates, start_date
     log(f"  ✔ Saved {nc_path}")
     return ds_daily
 
-def process_and_save(lai_forest_tifs, lai_other_tifs, obs_dates, info, mask):
+def process_and_save(lai_bulk_tifs, obs_dates, info, mask):
     log("STEP 2 - Assembling and Interpolating NetCDF time-series", "STEP")
-    maps_dir = os.path.join(OUTPUT_DIR, "maps")
+    maps_dir = OUTPUT_DIR
     make_dirs(maps_dir)
+    make_dirs(_cfg.DIR_LAI_FOREST)
+    make_dirs(_cfg.DIR_LAI_OTHER)
     
-    # Load LULC fraction maps
-    fracforest_path = os.path.join(_cfg.OUTPUT_LULC, "maps", "fracforest.tif")
-    fracother_path = os.path.join(_cfg.OUTPUT_LULC, "maps", "fracother.tif")
+    # Load fracforest fraction map
+    fracforest_path = os.path.join(_cfg.DIR_FRACTION, "fracforest.tif")
     
-    if not os.path.exists(fracforest_path) or not os.path.exists(fracother_path):
-        log("LULC fraction maps not found! Please run lisflood_frac_lulc_preprocessing.py first.", "ERROR")
+    if not os.path.exists(fracforest_path):
+        log("fracforest.tif not found! Please run lisflood_frac_lulc_preprocessing.py first.", "ERROR")
         sys.exit(1)
         
     with rasterio.open(fracforest_path) as src:
         fracforest = src.read(1)
         # Handle nan or nodata
         fracforest = np.where((fracforest == src.nodata) | np.isnan(fracforest), 0, fracforest)
+    
+    lai_forest_nc = os.path.join(_cfg.DIR_LAI_FOREST, "lai_forest.nc")
+    lai_other_nc = os.path.join(_cfg.DIR_LAI_OTHER, "lai_other.nc")
+    
+    # Assemble one master NetCDF from the bulk tifs
+    ds_bulk = assemble_netcdf(lai_bulk_tifs, info, mask, np.ones_like(mask), obs_dates, START_DATE, END_DATE, os.path.join(maps_dir, "lai_bulk_temp.nc"))
+    
+    bulk_lai = ds_bulk["lai"].values
+    num_times, height, width = bulk_lai.shape
+    
+    log("  Performing Inverse Distance Weighting (IDW) Interpolation based on pure forest/non-forest pixels...")
+    from scipy.spatial import cKDTree
+    
+    # Define pure masks based on LISFLOOD manual
+    forest_mask = (mask > 0) & (fracforest >= 0.70)
+    if not np.any(forest_mask):
+        log("  No pixels with >= 70% forest found! Falling back to top 5% forest pixels...", "WARN")
+        threshold = np.percentile(fracforest[mask > 0], 95)
+        forest_mask = (mask > 0) & (fracforest >= threshold)
         
-    with rasterio.open(fracother_path) as src:
-        fracother = src.read(1)
-        fracother = np.where((fracother == src.nodata) | np.isnan(fracother), 0, fracother)
+    other_mask = (mask > 0) & (fracforest <= 0.20)
+    if not np.any(other_mask):
+        log("  No pixels with <= 20% forest found! Falling back to bottom 5% forest pixels...", "WARN")
+        threshold = np.percentile(fracforest[mask > 0], 5)
+        other_mask = (mask > 0) & (fracforest <= threshold)
+        
+    # Target coordinates for IDW (all cells in the basin)
+    ty, tx = np.where(mask > 0)
+    target_coords = np.column_stack((ty, tx))
     
-    lai_forest_nc = os.path.join(maps_dir, "lai_forest.nc")
-    lai_other_nc = os.path.join(maps_dir, "lai_other.nc")
+    lai_forest_cube = np.full_like(bulk_lai, NODATA_VAL)
+    lai_other_cube = np.full_like(bulk_lai, NODATA_VAL)
     
-    ds_forest = assemble_netcdf(lai_forest_tifs, info, mask, fracforest, obs_dates, START_DATE, END_DATE, lai_forest_nc)
-    ds_other = assemble_netcdf(lai_other_tifs, info, mask, fracother, obs_dates, START_DATE, END_DATE, lai_other_nc)
+    def idw_interpolate_t(bulk_t, src_mask, tgt_coords, k=5, p=2):
+        # Find valid source points for this time step
+        valid_src = src_mask & (bulk_t != NODATA_VAL) & ~np.isnan(bulk_t)
+        sy, sx = np.where(valid_src)
+        
+        if len(sy) == 0:
+            return np.full(len(tgt_coords), NODATA_VAL)
+            
+        src_coords = np.column_stack((sy, sx))
+        src_vals = bulk_t[sy, sx]
+        
+        if len(sy) == 1:
+            return np.full(len(tgt_coords), src_vals[0])
+            
+        actual_k = min(k, len(sy))
+        tree = cKDTree(src_coords)
+        dist, idx = tree.query(tgt_coords, k=actual_k)
+        
+        if actual_k == 1:
+            dist = dist.reshape(-1, 1)
+            idx = idx.reshape(-1, 1)
+            
+        dist = np.maximum(dist, 1e-12)
+        weights = 1.0 / (dist ** p)
+        
+        # Handle exact matches
+        exact = dist < 1e-8
+        for i in range(len(tgt_coords)):
+            if np.any(exact[i]):
+                weights[i, :] = 0
+                weights[i, exact[i]] = 1.0
+                
+        sum_weights = np.sum(weights, axis=1, keepdims=True)
+        norm_weights = weights / sum_weights
+        return np.sum(norm_weights * src_vals[idx], axis=1)
+
+    for t in range(num_times):
+        bulk_t = bulk_lai[t]
+        
+        # Interpolate for Forest
+        f_interp = idw_interpolate_t(bulk_t, forest_mask, target_coords)
+        lai_forest_cube[t, ty, tx] = f_interp
+        
+        # Interpolate for Other
+        o_interp = idw_interpolate_t(bulk_t, other_mask, target_coords)
+        lai_other_cube[t, ty, tx] = o_interp
+    
+    ds_forest = ds_bulk.copy(deep=True)
+    ds_forest["lai"].values = lai_forest_cube
+    ds_forest.to_netcdf(lai_forest_nc, encoding={"lai": {"_FillValue": NODATA_VAL, "zlib": True, "complevel": 4}})
+    
+    ds_other = ds_bulk.copy(deep=True)
+    ds_other["lai"].values = lai_other_cube
+    ds_other.to_netcdf(lai_other_nc, encoding={"lai": {"_FillValue": NODATA_VAL, "zlib": True, "complevel": 4}})
+    
+    log(f"  ✔ Saved {lai_forest_nc}")
+    log(f"  ✔ Saved {lai_other_nc}")
+    
+    # Clean up temp bulk file
+    if os.path.exists(os.path.join(maps_dir, "lai_bulk_temp.nc")):
+        os.remove(os.path.join(maps_dir, "lai_bulk_temp.nc"))
     
     return ds_forest, ds_other
 
@@ -261,7 +326,7 @@ def visualize(ds_forest, ds_other, info):
         ax.legend()
         
         plt.tight_layout()
-        out = os.path.join(OUTPUT_DIR, "LAI_VISUAL_CHECK.png")
+        out = os.path.join(_cfg.BASE_DIR, "LAI_VISUAL_CHECK.png")
         plt.savefig(out, dpi=150, bbox_inches="tight")
         plt.close()
         log(f"  * {out}")
@@ -278,9 +343,9 @@ def main():
     
     info, mask = load_grid(AREA_TIF)
     
-    lai_forest_tifs, lai_other_tifs, obs_dates = fetch_gee_timeseries(info, START_DATE, END_DATE)
+    lai_bulk_tifs, obs_dates = fetch_gee_timeseries(info, START_DATE, END_DATE)
     
-    ds_forest, ds_other = process_and_save(lai_forest_tifs, lai_other_tifs, obs_dates, info, mask)
+    ds_forest, ds_other = process_and_save(lai_bulk_tifs, obs_dates, info, mask)
     
     visualize(ds_forest, ds_other, info)
     

@@ -32,7 +32,7 @@ from lisflood_utils import (log, make_dirs, gdal_convert_netcdf, init_ee,
 
 AREA_TIF        = _cfg.AREA_TIF
 LULC_ALIGNED    = _cfg.LULC_ALIGNED
-OUTPUT_DIR      = _cfg.OUTPUT_SOIL
+OUTPUT_DIR      = _cfg.DIR_SOILHYD
 
 RESOLUTION_M    = _cfg.RESOLUTION_M
 
@@ -122,7 +122,7 @@ def process_soil(info, area_mask, lulc_arr):
     log("STEP 1 — Fetching raw soil data from Earth Engine", "STEP")
     init_ee(_cfg.GEE_PROJECT)
 
-    raw_dir = os.path.join(OUTPUT_DIR, "raw")
+    raw_dir = _cfg.DIR_RAW
 
     # Fetch clay, silt, bulk-density, and soil organic carbon for both layers.
     # silt and soc are needed for the full Tóth et al. (2015) PTF equations.
@@ -255,8 +255,8 @@ def process_soil(info, area_mask, lulc_arr):
     }
 
     for name, array in final_maps.items():
-        tif_p = os.path.join(OUTPUT_DIR, "maps", f"{name}.tif")
-        nc_p = os.path.join(OUTPUT_DIR, "maps", f"{name}.nc")
+        tif_p = os.path.join(OUTPUT_DIR, f"{name}.tif")
+        nc_p = os.path.join(OUTPUT_DIR, f"{name}.nc")
         save_aligned(array, tif_p, "float32", NODATA_FLOAT, like=AREA_TIF)
         gdal_convert_netcdf(tif_p, nc_p)
         log(f"  ✔ {name}.nc")
@@ -292,7 +292,7 @@ def visual_check(maps):
             panel(axes[1], maps[f'{prop}1_other'], f"Layer 1 - Other", cmap)
             panel(axes[2], maps[f'{prop}2'], f"Layer 2", cmap)
             
-            out = os.path.join(OUTPUT_DIR, f"soil_visual_check_{prop}.png")
+            out = os.path.join(_cfg.BASE_DIR, f"soil_visual_check_{prop}.png")
             plt.tight_layout()
             plt.savefig(out, dpi=120)
             plt.close()

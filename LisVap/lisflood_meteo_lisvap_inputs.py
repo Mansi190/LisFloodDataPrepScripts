@@ -22,7 +22,7 @@ END_DATE   = "2024-12-31"
 
 AREA_TIF   = _cfg.AREA_TIF
 # Output goes inside a lisvap directory
-OUTPUT_DIR = os.path.join(_cfg.OUTPUT_METEO, "lisvap_input")
+OUTPUT_DIR = _cfg.DIR_METEO
 NODATA_VAL = _cfg.NODATA_FLOAT
 
 # =============================================================================
@@ -106,6 +106,24 @@ def fetch_gee_timeseries(info, start_date, end_date):
     raw_dir = os.path.join(OUTPUT_DIR, "raw")
     make_dirs(raw_dir)
     
+
+    def download_in_chunks(img, prefix, chunk_size=60):
+        band_names = img.bandNames().getInfo()
+        total_bands = len(band_names)
+        chunk_files = []
+        for i in range(0, total_bands, chunk_size):
+            chunk_bands = band_names[i:i+chunk_size]
+            chunk_img = img.select(chunk_bands)
+            chunk_file = os.path.join(raw_dir, f"{prefix}_raw_{i}.tif")
+            if not os.path.exists(chunk_file):
+                log(f"  Downloading {prefix} chunk {i//chunk_size + 1}/{(total_bands+chunk_size-1)//chunk_size}...")
+                import geemap
+                geemap.ee_export_image(chunk_img, filename=chunk_file, scale=_cfg.RESOLUTION_M, crs=str(info.crs), region=region, file_per_band=False)
+            else:
+                log(f"  Chunk already exists: {chunk_file}")
+            chunk_files.append(chunk_file)
+        return chunk_files
+
     downloads = {
         "tn": tn_img,
         "tx": tx_img,
@@ -114,28 +132,28 @@ def fetch_gee_timeseries(info, start_date, end_date):
         "pd": pd_img
     }
     
-    tif_paths = {}
+    tif_paths_dict = {}
     
     for var_name, img in downloads.items():
-        tif_path = os.path.join(raw_dir, f"{var_name}_raw.tif")
-        tif_paths[var_name] = tif_path
-        if not os.path.exists(tif_path):
-            log(f"  Downloading {var_name.upper()} to {tif_path}...")
-            geemap.ee_export_image(img, filename=tif_path, scale=_cfg.RESOLUTION_M, crs=str(info.crs), region=region, file_per_band=False)
-        else:
-            log(f"  Raw {var_name.upper()} data already exists: {tif_path}")
+        log(f"  Downloading {var_name.upper()} (chunked)...")
+        tif_paths_dict[var_name] = download_in_chunks(img, var_name)
 
-    return tif_paths
+    return tif_paths_dict
 
-def assemble_netcdf(tif_path, var_name, info, mask, dates, nc_path):
+def assemble_netcdf(tif_paths, var_name, info, mask, dates, nc_path):
     log(f"  Processing NetCDF for {var_name}...")
     
     x_coords = [info.transform.c + (i + 0.5) * info.transform.a for i in range(info.width)]
     y_coords = [info.transform.f + (i + 0.5) * info.transform.e for i in range(info.height)]
     
-    with rasterio.open(tif_path) as src:
-        raw_data = src.read()
-        src_nd = src.nodata if src.nodata is not None else -9999
+    raw_data_list = []
+    for tif_path in tif_paths:
+        with rasterio.open(tif_path) as src:
+            raw_data_list.append(src.read())
+            src_nd = src.nodata if src.nodata is not None else -9999
+            
+    import numpy as np
+    raw_data = np.concatenate(raw_data_list, axis=0) if raw_data_list else np.empty((0, info.height, info.width))
         
     num_days = len(dates)
     if raw_data.shape[0] < num_days:
@@ -185,7 +203,7 @@ def assemble_netcdf(tif_path, var_name, info, mask, dates, nc_path):
 
 def process_and_save(tif_paths, info, mask):
     log("STEP 2 - Assembling NetCDF time-series", "STEP")
-    maps_dir = os.path.join(OUTPUT_DIR, "maps")
+    maps_dir = OUTPUT_DIR
     make_dirs(maps_dir)
     
     dates = pd.date_range(start=START_DATE, end=END_DATE, freq='D')

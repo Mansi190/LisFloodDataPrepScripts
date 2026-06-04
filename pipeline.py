@@ -37,9 +37,12 @@ STEPS = [
     ("lulc_cover", "lisflood_lulc_cover.py"),
     ("soil",       "lisflood_soil_preprocessing.py"),
     ("chan",       "channnels.py"),
-    ("gauges",     "lisflood_gauges_sites.py"),
+    ("outlets",    "make_outlets.py"),
     ("meteo",      "lisflood_meteo_forcing.py"),
     ("lai",        "lisflood_lai_forcing.py"),
+    ("lisvap_lat", "LisVap/generate_lat_nc.py"),
+    ("lisvap_in",  "LisVap/lisflood_meteo_lisvap_inputs.py"),
+    ("lisvap_run", "LisVap/run_lisvap.py"),
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -54,26 +57,29 @@ def _nc(base, *names):
     return [os.path.join(base, f"{n}.nc") for n in names]
 
 EXPECTED_OUTPUTS = {
-    "topo": _nc(cfg.OUTPUT_TOPO + "/maps", "area", "dem", "ldd", "gradient", "elvstd"),
-    "lulc": _nc(cfg.OUTPUT_LULC + "/maps", "fracwater", "fracsealed", "fracforest", "fracother"),
-    "lulc_cover": _nc(cfg.OUTPUT_LULC_COVER + "/maps",
+    "topo": _nc(cfg.DIR_MAPS, "area", "dem_300m", "ldd", "gradient", "elvstd"),
+    "lulc": _nc(cfg.DIR_FRACTION, "fracwater", "fracsealed", "fracforest", "fracother"),
+    "lulc_cover": _nc(cfg.DIR_TABLE2MAP,
                       "cropcoef_forest", "cropcoef_other",
                       "crgrnum_forest",  "crgrnum_other",
                       "mannings_forest", "mannings_other",
                       "soildep1_forest", "soildep1_other",
                       "soildep2_forest", "soildep2_other"),
-    "soil": _nc(cfg.OUTPUT_SOIL + "/maps",
+    "soil": _nc(cfg.DIR_SOILHYD,
                   "thetas1_forest", "thetas1_other", "thetas2",
                   "thetar1_forest", "thetar1_other", "thetar2",
                   "alpha1_forest",  "alpha1_other",  "alpha2",
                   "lambda1_forest", "lambda1_other", "lambda2",
                   "ksat1_forest",   "ksat1_other",   "ksat2"),
-    "chan": _nc(cfg.OUTPUT_CHANNELS + "/maps",
+    "chan": _nc(cfg.DIR_MAPS,
                  "chan", "changrad", "chanman", "chanleng",
                  "chanbw", "chans", "chanbnkf"),
-    "gauges": _maps(cfg.OUTPUT_GAUGES, "gauges", "sites"),
-    "meteo": _nc(cfg.OUTPUT_METEO + "/maps", "pr", "ta"),
-    "lai": _nc(cfg.OUTPUT_LAI + "/maps", "lai_forest", "lai_other"),
+    "outlets": ["reportingStations/outlets.nc"],
+    "meteo": _nc(cfg.DIR_METEO, "pr", "ta"),
+    "lai": [os.path.join(cfg.DIR_LAI_FOREST, "lai_forest.nc"), os.path.join(cfg.DIR_LAI_OTHER, "lai_other.nc")],
+    "lisvap_lat": _nc(cfg.DIR_MAPS, "lat"),
+    "lisvap_in": _nc(cfg.DIR_METEO, "tn", "tx", "rg", "ws", "pd"),
+    "lisvap_run": _nc(cfg.DIR_METEO, "et", "e", "es"),
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -85,7 +91,7 @@ STEP_DEPS = {
     "lulc":   ["topo"],
     "soil":   ["topo", "lulc"],
     "chan":   ["topo"],
-    "gauges": ["topo", "chan"],
+    "outlets":["topo", "chan"],
     "meteo":  ["topo"],
     "lai":    ["topo", "lulc"],
 }
@@ -195,14 +201,15 @@ def generate_ini():
       - Reservoir / lake data (if applicable)
       - Calibration multipliers (SnowMeltCoef, b_Xinanjiang, etc.)
     """
-    topo   = cfg.OUTPUT_TOPO + "/maps"
-    lulc   = cfg.OUTPUT_LULC + "/maps"
-    lulc_c = cfg.OUTPUT_LULC_COVER + "/maps"
-    soil   = cfg.OUTPUT_SOIL + "/maps"
-    chan   = cfg.OUTPUT_CHANNELS + "/maps"
-    gauges = cfg.OUTPUT_GAUGES + "/maps"
-    meteo  = cfg.OUTPUT_METEO + "/maps"
-    lai    = cfg.OUTPUT_LAI + "/maps"
+    topo   = cfg.DIR_MAPS
+    lulc   = cfg.DIR_FRACTION
+    lulc_c = cfg.DIR_TABLE2MAP
+    soil   = cfg.DIR_SOILHYD
+    chan   = cfg.DIR_MAPS
+    outlets = "reportingStations"
+    meteo  = cfg.DIR_METEO
+    lai_f  = cfg.DIR_LAI_FOREST
+    lai_o  = cfg.DIR_LAI_OTHER
     crs   = cfg.TARGET_CRS or "Auto-detected"
 
     ini_path = "./lisflood_settings.xml"
@@ -225,9 +232,9 @@ def generate_ini():
   ═══════════════════════════════════════════════════════════════ -->
   <lfuser>
 
-    <textvar name="CalendarDayStart" value="[FILL IN: e.g. 01/01/2024 06:00]"/>
-    <textvar name="StepStart"        value="[FILL IN: e.g. 1]"/>
-    <textvar name="StepEnd"          value="[FILL IN: e.g. 365]"/>
+    <textvar name="CalendarDayStart" value="01/01/2024 00:00"/>
+    <textvar name="StepStart"        value="01/01/2024 00:00"/>
+    <textvar name="StepEnd"          value="31/12/2024 00:00"/>
     <textvar name="DtSec"            value="86400"/>   <!-- daily timestep -->
     <textvar name="DtSecChannel"     value="3600"/>    <!-- sub-daily channel routing -->
 
@@ -311,14 +318,13 @@ def generate_ini():
   <!-- ══════════════════════════════════════════════════════════════
        SPATIAL MAPS — LAI
   ═══════════════════════════════════════════════════════════════ -->
-  <textvar name="LAIForest" value="{lai}/lai_forest.nc"/>
-  <textvar name="LAIOther"  value="{lai}/lai_other.nc"/>
+  <textvar name="LAIForest" value="{lai_f}/lai_forest.nc"/>
+  <textvar name="LAIOther"  value="{lai_o}/lai_other.nc"/>
 
   <!-- ══════════════════════════════════════════════════════════════
        GAUGES AND MONITORING SITES
   ═══════════════════════════════════════════════════════════════ -->
-  <textvar name="GaugesMap"  value="{gauges}/gauges.map"/>
-  <textvar name="SitesMap"   value="{gauges}/sites.map"/>
+  <textvar name="Gauges"  value="{outlets}/outlets.nc"/>
 
   <!-- ══════════════════════════════════════════════════════════════
        METEOROLOGICAL FORCING (NetCDF stacks)
@@ -330,34 +336,27 @@ def generate_ini():
   <textvar name="ES0Maps"            value="{meteo}/es.nc"/>
 
   <!-- ══════════════════════════════════════════════════════════════
-       INITIAL CONDITIONS  [FILL IN or use warm-start state files]
-       These CANNOT be auto-generated — they require either:
-         a) A spin-up simulation (run LISFLOOD for 1-5 years with
-            recycled meteorology, then save the end-state)
-         b) Observed data (soil moisture from satellite, GW levels
-            from wells, stream discharge from gauges)
+       INITIAL CONDITIONS  (Cold Start = 0)
   ═══════════════════════════════════════════════════════════════ -->
-  <textvar name="init_luzMaps"   value="[FILL IN: initial upper zone storage (mm)]"/>
-  <textvar name="init_lzMaps"    value="[FILL IN: initial lower zone storage (mm)]"/>
-  <textvar name="init_dslrMaps"  value="[FILL IN: initial days-since-last-rain]"/>
-  <textvar name="init_wMaps"     value="[FILL IN: initial soil moisture layer 1]"/>
-  <textvar name="init_w2Maps"    value="[FILL IN: initial soil moisture layer 2]"/>
-  <textvar name="init_TotalChanQMaps" value="[FILL IN: initial channel discharge]"/>
+  <textvar name="init_luzMaps"   value="0"/>
+  <textvar name="init_lzMaps"    value="0"/>
+  <textvar name="init_dslrMaps"  value="0"/>
+  <textvar name="init_wMaps"     value="0"/>
+  <textvar name="init_w2Maps"    value="0"/>
+  <textvar name="init_TotalChanQMaps" value="0"/>
 
   <!-- ══════════════════════════════════════════════════════════════
-       CALIBRATION PARAMETERS  [CALIBRATE against observed discharge]
-       These require parameter estimation (PEST / DREAM / manual).
-       Typical starting values given for Bihar/monsoon climate.
+       CALIBRATION PARAMETERS  (Uncalibrated Defaults)
   ═══════════════════════════════════════════════════════════════ -->
-  <textvar name="SnowMeltCoef"        value="[CALIBRATE: start 4.0 mm/°C/day]"/>
-  <textvar name="b_Xinanjiang"        value="[CALIBRATE: start 0.2, range 0.01–2.0]"/>
-  <textvar name="PowerPrefFlow"       value="[CALIBRATE: start 3.0]"/>
-  <textvar name="UpperZoneTimeConstant" value="[CALIBRATE: start 10 days]"/>
-  <textvar name="LowerZoneTimeConstant" value="[CALIBRATE: start 1000 days]"/>
-  <textvar name="GwPercValue"         value="[CALIBRATE: deep percolation, mm/day]"/>
-  <textvar name="GwLoss"              value="[CALIBRATE: 0 = no GW loss]"/>
-  <textvar name="CalChanMan"          value="[CALIBRATE: Manning multiplier, start 1.0]"/>
-  <textvar name="CalEvaporation"      value="[CALIBRATE: ET multiplier, start 1.0]"/>
+  <textvar name="SnowMeltCoef"        value="4.0"/>
+  <textvar name="b_Xinanjiang"        value="0.2"/>
+  <textvar name="PowerPrefFlow"       value="3.0"/>
+  <textvar name="UpperZoneTimeConstant" value="10"/>
+  <textvar name="LowerZoneTimeConstant" value="1000"/>
+  <textvar name="GwPercValue"         value="0.0"/>
+  <textvar name="GwLoss"              value="0.0"/>
+  <textvar name="CalChanMan"          value="1.0"/>
+  <textvar name="CalEvaporation"      value="1.0"/>
 
   <!-- ══════════════════════════════════════════════════════════════
        MISSING SPATIAL INPUTS (not auto-generated — require data)
@@ -387,6 +386,12 @@ def generate_ini():
 # ─────────────────────────────────────────────────────────────────────────────
 
 def main():
+    # Ensure all directories exist
+    for d in [cfg.DIR_MAPS, cfg.DIR_FRACTION, cfg.DIR_SOILHYD, cfg.DIR_TABLE2MAP, 
+              cfg.DIR_TABLES, cfg.DIR_METEO, cfg.DIR_LAI_FOREST, cfg.DIR_LAI_OTHER, 
+              cfg.DIR_OUT, cfg.DIR_RAW]:
+        os.makedirs(d, exist_ok=True)
+
     parser = argparse.ArgumentParser(description="LISFLOOD data-prep pipeline runner")
     parser.add_argument("--check",    action="store_true",
                         help="Show output status without running anything")

@@ -7,8 +7,14 @@ import os
 # Create a latitude NetCDF file which is required by LISVAP as a BaseMap.
 # It reads the geospatial bounds from the canonical mask (area.tif)
 
-area_tif = '../lisflood_topography/maps/area.tif'
-lat_nc = '../lisflood_topography/maps/lat.nc'
+
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import pipeline_config as _cfg
+
+area_tif = _cfg.AREA_TIF
+
+lat_nc = os.path.join(_cfg.DIR_MAPS, 'lat.nc')
 
 def generate_lat_nc():
     print(f"Reading bounds from {area_tif}...")

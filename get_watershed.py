@@ -9,10 +9,11 @@ all_watersheds = ee.FeatureCollection('projects/corestack-datasets/assets/datase
 
 # 3. Tell Earth Engine which one you want by giving it a point inside your area.
 # FORMAT: [Longitude, Latitude]
-my_point = ee.Geometry.Point([87.44, 26.13])  # <-- [Longitude, Latitude] (Notice 87 comes first!)
+my_point = ee.Geometry.Point([74.60222, 16.68444])  # <-- [Longitude, Latitude] (Notice 87 comes first!)
 
 # 4. Filter the giant dataset to only keep the watershed that touches your point
 my_watershed = all_watersheds.filterBounds(my_point)
+print(my_watershed.getInfo())
 
 # 5. Download it directly to your laptop as a Shapefile!
 print("Downloading...")

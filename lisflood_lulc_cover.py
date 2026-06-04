@@ -16,7 +16,7 @@ import numpy as np
 import pipeline_config as _cfg
 from lisflood_utils import (log, make_dirs, load_grid, save_aligned, gdal_convert_netcdf)
 
-OUTPUT_DIR = _cfg.OUTPUT_LULC_COVER
+OUTPUT_DIR = _cfg.DIR_TABLE2MAP
 AREA_TIF = _cfg.AREA_TIF
 
 CRGRNUM_F = 3.5
@@ -54,7 +54,7 @@ def generate_parameters():
         "soildep2_other":  mask_surface(1400, domain),
     }
 
-    maps_dir = os.path.join(OUTPUT_DIR, "maps")
+    maps_dir = OUTPUT_DIR
     make_dirs(OUTPUT_DIR)
 
     tif_paths = {}
@@ -161,7 +161,7 @@ def visualize(maps, mask, info):
             panel(axes[1, i], maps[f'{prop}_other'], f"{desc}\n(Other)", "Oranges")
 
         plt.tight_layout()
-        out = os.path.join(OUTPUT_DIR, "PARAMETERS_VISUAL_CHECK.png")
+        out = os.path.join(_cfg.BASE_DIR, "PARAMETERS_VISUAL_CHECK.png")
         plt.savefig(out, dpi=150, bbox_inches="tight")
         plt.close()
         log(f"  * {out}")

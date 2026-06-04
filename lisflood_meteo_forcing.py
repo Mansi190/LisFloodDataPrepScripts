@@ -19,7 +19,7 @@ START_DATE = "2024-01-01"
 END_DATE   = "2024-12-31"
 
 AREA_TIF   = _cfg.AREA_TIF
-OUTPUT_DIR = _cfg.OUTPUT_METEO
+OUTPUT_DIR = _cfg.DIR_METEO
 NODATA_VAL = _cfg.NODATA_FLOAT
 
 # =============================================================================
@@ -79,7 +79,7 @@ def fetch_gee_timeseries(info, start_date, end_date):
     ta_img = ta_mapped.toBands()  # Collapse time to bands
 
     # --- DOWNLOAD ---
-    raw_dir = os.path.join(OUTPUT_DIR, "raw")
+    raw_dir = _cfg.DIR_RAW
     make_dirs(raw_dir)
     
     def download_in_chunks(img, prefix, chunk_size=60):
@@ -167,7 +167,7 @@ def assemble_netcdf(tif_paths, var_name, info, mask, dates, nc_path):
 
 def process_and_save(pr_tifs, ta_tifs, info, mask):
     log("STEP 2 - Assembling NetCDF time-series", "STEP")
-    maps_dir = os.path.join(OUTPUT_DIR, "maps")
+    maps_dir = OUTPUT_DIR
     make_dirs(maps_dir)
     
     dates = pd.date_range(start=START_DATE, end=END_DATE, freq='D')
@@ -175,50 +175,63 @@ def process_and_save(pr_tifs, ta_tifs, info, mask):
     pr_nc = os.path.join(maps_dir, "pr.nc")
     ta_nc = os.path.join(maps_dir, "ta.nc")
     
-    ds_pr = assemble_netcdf(pr_tifs, "pr", info, mask, dates, pr_nc)
-    ds_ta = assemble_netcdf(ta_tifs, "ta", info, mask, dates, ta_nc)
+    if os.path.exists(pr_nc) and os.path.exists(ta_nc):
+        log("  Existing NetCDF files found. Loading them...")
+        ds_pr = xr.open_dataset(pr_nc)
+        ds_ta = xr.open_dataset(ta_nc)
+    else:
+        ds_pr = assemble_netcdf(pr_tifs, "pr", info, mask, dates, pr_nc)
+        ds_ta = assemble_netcdf(ta_tifs, "ta", info, mask, dates, ta_nc)
     
     return ds_pr, ds_ta
 
-def visualize(ds_pr, ds_ta, info, plot_date=START_DATE):
-    log(f"STEP 3 - Creating METEO_VISUAL_CHECK.png for date {plot_date}", "STEP")
+def visualize(ds_pr, ds_ta, info):
+    log("STEP 3 - Creating METEO_VISUAL_CHECK.png (Timeseries Graph)", "STEP")
     try:
         import matplotlib.pyplot as plt
+        import pandas as pd
         
-        # Select the specific date to plot
-        try:
-            day_pr = ds_pr.sel(time=plot_date)
-            day_ta = ds_ta.sel(time=plot_date)
-        except KeyError:
-            log(f"Date {plot_date} not found in dataset. Plotting the first day instead.", "WARN")
-            day_pr = ds_pr.isel(time=0)
-            day_ta = ds_ta.isel(time=0)
-            plot_date = str(day_pr.time.values)[:10]
-            
-        fig, axes = plt.subplots(1, 2, figsize=(15, 6))
+        # Calculate the spatial mean for each time step, ignoring NODATA
+        pr_masked = ds_pr['pr'].where(ds_pr['pr'] != NODATA_VAL)
+        ta_masked = ds_ta['ta'].where(ds_ta['ta'] != NODATA_VAL)
+        
+        # Calculate spatial mean over 'y' and 'x' dimensions
+        mean_pr = pr_masked.mean(dim=['y', 'x'])
+        mean_ta = ta_masked.mean(dim=['y', 'x'])
+        
+        # Extract times and values
+        times = pd.to_datetime(mean_pr.time.values)
+        vals_pr = mean_pr.values
+        vals_ta = mean_ta.values
+        
+        fig, ax1 = plt.subplots(figsize=(12, 6))
         fig.suptitle(
-            f"LISFLOOD Meteorological Forcing  |  {info.crs}\n"
-            f"Showing data for specific date: {plot_date}",
+            f"Basin-Average Meteorological Timeseries  |  {info.crs}",
             fontsize=14, fontweight="bold"
         )
         
-        pr_data = day_pr['pr'].where(day_pr['pr'] != NODATA_VAL).values
-        ta_data = day_ta['ta'].where(day_ta['ta'] != NODATA_VAL).values
+        # Plot Temperature on left y-axis
+        color_ta = 'tab:red'
+        ax1.set_xlabel('Date', fontweight="bold")
+        ax1.set_ylabel('Air Temperature (°C)', color=color_ta, fontweight="bold")
+        ax1.plot(times, vals_ta, color=color_ta, linewidth=2, label='Mean Temperature')
+        ax1.tick_params(axis='y', labelcolor=color_ta)
+        ax1.grid(True, linestyle='--', alpha=0.7)
         
-        # Panel 1: Precipitation
-        im1 = axes[0].imshow(pr_data, cmap="Blues", interpolation="nearest", vmin=0)
-        plt.colorbar(im1, ax=axes[0], shrink=0.8)
-        axes[0].set_title("Precipitation (mm/day)", fontweight="bold")
-        axes[0].axis("off")
+        # Plot Precipitation on right y-axis (inverted or normal, let's do normal bar chart)
+        ax2 = ax1.twinx()
+        color_pr = 'tab:blue'
+        ax2.set_ylabel('Precipitation (mm/day)', color=color_pr, fontweight="bold")
+        ax2.bar(times, vals_pr, color=color_pr, alpha=0.6, width=1.0, label='Precipitation')
+        ax2.tick_params(axis='y', labelcolor=color_pr)
         
-        # Panel 2: Temperature
-        im2 = axes[1].imshow(ta_data, cmap="coolwarm", interpolation="nearest")
-        plt.colorbar(im2, ax=axes[1], shrink=0.8)
-        axes[1].set_title("Air Temperature (°C)", fontweight="bold")
-        axes[1].axis("off")
+        # Add a combined legend
+        lines_1, labels_1 = ax1.get_legend_handles_labels()
+        lines_2, labels_2 = ax2.get_legend_handles_labels()
+        ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=2)
         
         plt.tight_layout()
-        out = os.path.join(OUTPUT_DIR, "METEO_VISUAL_CHECK.png")
+        out = os.path.join(_cfg.BASE_DIR, "METEO_VISUAL_CHECK.png")
         plt.savefig(out, dpi=150, bbox_inches="tight")
         plt.close()
         log(f"  * {out}")

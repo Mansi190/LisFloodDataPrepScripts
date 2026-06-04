@@ -20,7 +20,7 @@ from lisflood_utils import (GridInfo, log, check_imports, make_dirs,
                             gdal_convert_netcdf, load_grid, save_aligned, reproject_to_grid,
                             init_ee)
 AREA_TIF        = _cfg.AREA_TIF
-OUTPUT_DIR      = _cfg.OUTPUT_CHANNELS
+OUTPUT_DIR      = _cfg.DIR_MAPS
 RESOLUTION_M    = _cfg.RESOLUTION_M
 
 def _write_convert_script(tif_paths: dict):
@@ -159,7 +159,7 @@ def visualize(chan, changrad, chanbw, chanbnkf, chanman, chanleng, mask, info):
                 bbox=dict(boxstyle="round", facecolor="#e8f4f8", alpha=0.9))
 
         plt.tight_layout()
-        out = os.path.join(OUTPUT_DIR, "CHANNEL_VISUAL_CHECK.png")
+        out = os.path.join(_cfg.BASE_DIR, "CHANNEL_VISUAL_CHECK.png")
         plt.savefig(out, dpi=150, bbox_inches="tight")
         plt.close()
         log(f"  * {out}")
@@ -228,25 +228,56 @@ def compute_and_download_gee_channels(info):
         .where(pred_label.gte(7), 0.045) \
         .rename('chanman')
 
-    # 1) Channel Mask is now handled strictly locally via area.tif
+    # 1) Channel Mask using provided FeatureCollection
+    drainage_fc = ee.FeatureCollection("projects/corestack-datasets/assets/datasets/drainage-line/pan_india_drainage_lines")
+    channelMask = ee.Image(0).byte().paint(drainage_fc, 1).rename('chan')
 
-    # 2) Channel Gradient from SRTM 30m with focal smoothing
+    # 2) Channel Gradient: 10-90 Quantile Method
     srtm_dem = ee.Image("USGS/SRTMGL1_003")
-    smoothed_dem = srtm_dem.focal_mean(radius=2, kernelType='square', units='pixels')
-    slope = ee.Terrain.slope(smoothed_dem)
-    chanGrad = slope.divide(180).multiply(math.pi).tan().clamp(0.0001, 0.05).rename('changrad')
+    dem_masked = srtm_dem.updateMask(channelMask.eq(1))
+    
+    # Get 10th and 90th elevation percentiles for channel pixels within each target grid cell
+    dem_p = dem_masked.reduceResolution(
+        reducer=ee.Reducer.percentile([10, 90]), 
+        maxPixels=4096
+    ).reproject(crs=str(info.crs), scale=RESOLUTION_M)
+    
+    p10 = dem_p.select('elevation_p10')
+    p90 = dem_p.select('elevation_p90')
+    
+    # Approximate flow distance (Resolution * 1.1)
+    flow_dist = ee.Image.constant(RESOLUTION_M).multiply(1.1)
+    
+    chanGrad = p90.subtract(p10).divide(flow_dist) \
+                  .unmask(0.0001) \
+                  .clamp(0.0001, 0.05) \
+                  .rename('changrad')
 
-    chanSdXdY = ee.Image.constant(2.0).rename('chans')
-    chanLength = ee.Image.constant(RESOLUTION_M).multiply(1.1).rename('chanleng')
+    # 3) Channel Length: Meandering length inside target pixel
+    # Paint lines at 30m resolution (1 pixel wide = 30m wide)
+    channelMask_30m = ee.Image(0).paint(drainage_fc, 1).reproject(crs=str(info.crs), scale=30)
+    
+    # Calculate the fraction of 30m river pixels in the target pixel (e.g., 300m)
+    # Area = Fraction * (RES*RES). Length = Area / 30m.
+    chanLength = channelMask_30m.reduceResolution(
+        reducer=ee.Reducer.mean(), 
+        maxPixels=4096
+    ).reproject(crs=str(info.crs), scale=RESOLUTION_M) \
+     .multiply((RESOLUTION_M * RESOLUTION_M) / 30.0) \
+     .max(ee.Image.constant(RESOLUTION_M)) \
+     .rename('chanleng')
+    
+    chanSdXdY = ee.Image.constant(1.0).rename('chans')
     
     combined = ee.Image([
         chanGrad.toFloat(), chanMan.toFloat(),
-        chanLength.toFloat(), chanSdXdY.toFloat()
+        chanLength.toFloat(), chanSdXdY.toFloat(),
+        channelMask.byte()
     ])
     
-    raw_dir = os.path.join(OUTPUT_DIR, "raw")
+    raw_dir = _cfg.DIR_RAW
     make_dirs(raw_dir)
-    make_dirs(os.path.join(OUTPUT_DIR, "maps"))
+    make_dirs(OUTPUT_DIR)
     
     raw_tif = os.path.join(raw_dir, "channels_raw_gee.tif")
     if not os.path.exists(raw_tif):
@@ -268,18 +299,22 @@ def process_local_channels(raw_tif, mask_arr, info):
     log("STEP 3 - Aligning and masking outputs to area.tif...", "STEP")
     import rasterio
     tif_paths = {}
-    maps_dir = os.path.join(OUTPUT_DIR, "maps")
+    maps_dir = OUTPUT_DIR
     
     # 'chanbnkf' and 'chanbw' are computed locally, 'chan' is derived from area mask.
-    band_names = ['changrad', 'chanman', 'chanleng', 'chans']
     aligned_bands = {}
+    names = ['changrad', 'chanman', 'chanleng', 'chans', 'chan']
     
     with rasterio.open(raw_tif) as src:
         raw_data = src.read()
-        for i, name in enumerate(band_names):
+        
+        for i, name in enumerate(names):
             band_arr = raw_data[i]
             src_nd = src.nodata if src.nodata is not None else -9999
             band_arr[band_arr == src_nd] = np.nan
+            
+            # Use nearest neighbor for channel mask (categorical) and bilinear for others
+            resampling = "nearest" if name == 'chan' else "bilinear"
             
             aligned = reproject_to_grid(
                 src_array=band_arr,
@@ -288,30 +323,45 @@ def process_local_channels(raw_tif, mask_arr, info):
                 like=AREA_TIF,
                 src_nodata=np.nan,
                 dst_nodata=-9999,
-                resampling_method="bilinear"
+                resampling_method=resampling
             ).astype(np.float32)
             aligned_bands[name] = aligned
 
     # --- Local chanbnkf calculation using pysheds ---
     from pysheds.grid import Grid
     import sys
-    dem_path = os.path.join(_cfg.OUTPUT_TOPO, "raw", "dem_aligned.tif")
-    if not os.path.exists(dem_path):
-        log("dem_aligned.tif not found! Run topographyMapsScript.py first.", "ERROR")
+    ldd_path = os.path.join(_cfg.DIR_MAPS, "ldd.tif")
+    if not os.path.exists(ldd_path):
+        log("ldd.tif not found! Run topographyMapsScript.py first.", "ERROR")
         sys.exit(1)
         
-    grid = Grid.from_raster(dem_path)
-    dem = grid.read_raster(dem_path)
-    filled = grid.fill_pits(dem)
-    filled = grid.fill_depressions(filled)
-    filled = grid.resolve_flats(filled)
-    fdir = grid.flowdir(filled)
-    acc = grid.accumulation(fdir)
+    grid = Grid.from_raster(ldd_path)
+    ldd = grid.read_raster(ldd_path)
+    
+    # Convert PCRaster LDD to pysheds flowdir format
+    pcr_to_pysheds = {
+        8: 64,  # N
+        9: 128, # NE
+        6: 1,   # E
+        3: 2,   # SE
+        2: 4,   # S
+        1: 8,   # SW
+        4: 16,  # W
+        7: 32,  # NW
+        5: 0,   # Pit/Sink
+    }
+    
+    fdir_pysheds = np.zeros_like(ldd, dtype=np.int16)
+    for pcr, pysh in pcr_to_pysheds.items():
+        fdir_pysheds[ldd == pcr] = pysh
+        
+    # Calculate accumulation EXACTLY on the Yamazaki LDD routing graph
+    acc = grid.accumulation(fdir_pysheds)
     
     acc_arr = np.array(acc).astype(np.float32)
     
     # Save facc_snapped.tif which is required by lisflood_gauges_sites.py
-    facc_path = os.path.join(OUTPUT_DIR, "raw", "facc_snapped.tif")
+    facc_path = os.path.join(_cfg.DIR_RAW, "facc_snapped.tif")
     save_aligned(acc_arr, facc_path, "float32", -9999, like=AREA_TIF)
     
     area_km2 = acc_arr * (RESOLUTION_M**2 / 1_000_000)
@@ -319,12 +369,27 @@ def process_local_channels(raw_tif, mask_arr, info):
     chanbnkf = 0.27 * (area_km2 ** 0.33)
     chanbw = area_km2 * 0.0032
     
+    # Load the physically traced meandering channel length from the topography script
+    chanleng_path = os.path.join(_cfg.DIR_MAPS, "chanleng_300m.tif")
+    if os.path.exists(chanleng_path):
+        import rasterio
+        with rasterio.open(chanleng_path) as src:
+            chanleng_raw = src.read(1).astype(np.float32)
+        # Ensure minimum length of pixel resolution
+        chanleng_raw = np.where(chanleng_raw < RESOLUTION_M, RESOLUTION_M, chanleng_raw)
+        aligned_bands['chanleng'] = chanleng_raw
+    else:
+        log("chanleng_300m.tif not found from topography. Using GEE approximation instead.", "WARN")
+    
     aligned_bands['chanbnkf'] = chanbnkf
     aligned_bands['chanbw'] = chanbw
     # ------------------------------------------------
 
-    # Generate channel mask directly from master area mask
-    chan = np.where(mask_arr > 0, 1, 0).astype(np.uint8)
+    # The chan variable is dynamically defined using a 10 km2 upstream area threshold
+    UPSTREAM_AREA_THRESHOLD_KM2 = 5.0
+    log(f"  Defining channels using upstream area threshold >= {UPSTREAM_AREA_THRESHOLD_KM2} km2...")
+    chan = np.where((area_km2 >= UPSTREAM_AREA_THRESHOLD_KM2) & (mask_arr > 0), 1, 0).astype(np.uint8)
+    
     tif_paths['chan'] = os.path.join(maps_dir, "chan.tif")
     save_aligned(chan, tif_paths['chan'], "uint8", 0, like=AREA_TIF)
     

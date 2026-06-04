@@ -16,7 +16,7 @@ from lisflood_utils import (GridInfo, log, check_imports, make_dirs,
                             init_ee)
 
 AREA_TIF        = _cfg.AREA_TIF
-OUTPUT_DIR      = _cfg.OUTPUT_LULC
+OUTPUT_DIR      = _cfg.DIR_FRACTION
 RESOLUTION_M    = _cfg.RESOLUTION_M
 
 def _write_convert_script(tif_paths: dict):
@@ -144,7 +144,7 @@ def visualize(results, mask, info):
         panel(axes[4], results['fracother'], "fracother.map", "Oranges", "Fraction")
 
         plt.tight_layout()
-        out = os.path.join(OUTPUT_DIR, "LULC_VISUAL_CHECK.png")
+        out = os.path.join(_cfg.BASE_DIR, "LULC_VISUAL_CHECK.png")
         plt.savefig(out, dpi=150, bbox_inches="tight")
         plt.close()
         log(f"  * {out}")
@@ -210,9 +210,9 @@ def compute_and_download_gee_lulc(info):
         fOther.toFloat()
     ])
     
-    raw_dir = os.path.join(OUTPUT_DIR, "raw")
+    raw_dir = _cfg.DIR_RAW
     make_dirs(raw_dir)
-    make_dirs(os.path.join(OUTPUT_DIR, "maps"))
+    make_dirs(OUTPUT_DIR)
     
     raw_tif = os.path.join(raw_dir, "lulc_raw_gee.tif")
     if not os.path.exists(raw_tif):
@@ -234,7 +234,7 @@ def process_local_lulc(raw_tif, mask_arr, info):
     log("STEP 3 - Aligning and masking outputs to area.tif...", "STEP")
     import rasterio
     tif_paths = {}
-    maps_dir = os.path.join(OUTPUT_DIR, "maps")
+    maps_dir = OUTPUT_DIR
     
     band_names = ['lulc', 'fracsealed', 'fracwater', 'fracforest', 'fracother']
     aligned_bands = {}
