@@ -85,8 +85,8 @@
         <setoption choice="0" name="repSnowMeltMaps"/>
         <setoption choice="0" name="repThetaMaps"/>
         <setoption choice="0" name="repThetaForestMaps"/>
-        <setoption choice="0" name="repLZMaps"/>
-        <setoption choice="0" name="repUZMaps"/>
+        <setoption choice="1" name="repLZMaps"/>
+        <setoption choice="1" name="repUZMaps"/>
         <setoption choice="0" name="repGwPercUZLZMaps"/>
         <setoption choice="0" name="repE2O1"/>
         <setoption choice="0" name="repE2O2"/>
@@ -323,7 +323,7 @@
                 </comment>
             </textvar>
 
-            <textvar name="CalendarDayStart" value="02/01/2024 00:00">
+            <textvar name="CalendarDayStart" value="01/01/2024 00:00">
                 <comment>
                     Calendar day number of 1st day in model run
                     Day of the year of first map (e.g. xx000.001) even if the model start from map e.g. 500
@@ -349,13 +349,13 @@
                 </comment>
             </textvar>
 
-            <textvar name="StepStart" value="02/01/2024 00:00">
+            <textvar name="StepStart" value="01/01/2024 00:00">
                 <comment>
                     Number of first time step in simulation
                 </comment>
             </textvar>
 
-            <textvar name="StepEnd" value="31/12/2024 00:00">
+            <textvar name="StepEnd" value="30/11/2024 00:00">
                 <comment>
                     Number of last time step in simulation
                 </comment>
@@ -572,7 +572,7 @@
                 **************************************************************
             </comment>
 
-            <textvar name="timestepInit" value="02/01/2024 00:00">
+            <textvar name="timestepInit" value="01/01/2024 00:00">
                 <comment>
                     if init. condition are stored as netCDF with different time steps
                     this variable indicates which time step to use
@@ -1626,7 +1626,7 @@ LFBINDING: MORE LOW-LEVEL CONTROL OVER MODEL IN- AND OUTPUT
                 </comment>
             </textvar>
 
-            <textvar name="CalendarDayStart" value="$(CalendarDayStart)">
+            <textvar name="CalendarDayStart" value="01/01/2024 00:00">
                 <comment>
                     Calendar day is back!
                     Calendar day number of 1st day in model run
@@ -1648,13 +1648,13 @@ LFBINDING: MORE LOW-LEVEL CONTROL OVER MODEL IN- AND OUTPUT
                 </comment>
             </textvar>
 
-            <textvar name="StepStart" value="$(StepStart)">
+            <textvar name="StepStart" value="01/01/2024 00:00">
                 <comment>
                     Number of first time step in simulation
                 </comment>
             </textvar>
 
-            <textvar name="StepEnd" value="$(StepEnd)">
+            <textvar name="StepEnd" value="30/11/2024 00:00">
                 <comment>
                     Number of last time step in simulation
                 </comment>
@@ -2105,7 +2105,7 @@ LFBINDING: MORE LOW-LEVEL CONTROL OVER MODEL IN- AND OUTPUT
                 </comment>
             </textvar>
 
-            <textvar name="timestepInit" value="$(timestepInit)">
+            <textvar name="timestepInit" value="01/01/2024 00:00">
                 <comment>
                     if init condition are stored as netCDF with different time steps
                     this variable indicates which time step to use

@@ -1,0 +1,268 @@
+  2. Time Steps
+
+  • DtSec (Timestep in seconds):  86400  (i.e., daily timestep)
+  • DtSecChannel:  14400  (i.e., 4-hour sub-timestep for channel routing)
+  • StepStart:  1 
+  • StepEnd:  1826  (This corresponds to approximately 5 years of daily timesteps: 365 * 5 + 1 = 1826)
+  3. Paths
+  • PathRoot:  /input 
+  • PathOut:  /input/output_dataset/out 
+  • PathInit:  /input/output_dataset/out 
+  • PathMaps:  $(PathRoot)/maps 
+  • PathParams:  $(PathRoot)/params 
+  • PathMeteoFiles:  $(PathRoot)/meteo_forcing 
+  • PathLAI:  $(PathRoot)/lai 
+  4. Initial State Variables (Cold Start - all set to 0 or bogus values)
+  These are the key variables initialized to  0  (or their defaults) for the cold start:
+   Variable                                                 | Value                                                   | Description
+  ----------------------------------------------------------|---------------------------------------------------------|---------------------------------------------------------
+    OFDirectInitValue                                       |  0                                                      | Overland flow (direct runoff)
+    OFOtherInitValue                                        |  0                                                      | Other overland flow
+    ChanCrossSectionInitValue                               |  0                                                      | Channel cross-section area
+    DSLRInitValue                                           |  1                                                      | Days Since Last Rain (set to 1, not 0)
+    CumIntInitValue                                         |  0                                                      | Cumulative Interception
+    FrostIndexInitValue                                     |  0                                                      | Frost Index
+    LZInitValue                                             |  0                                                      | Lower Zone (groundwater) storage
+    UZInitValue                                             |  0                                                      | Upper Zone storage
+    SnowCoverAInitValue                                     |  0                                                      | Snow Cover (Zone A)
+    SnowCoverBInitValue                                     |  0                                                      | Snow Cover (Zone B)
+    SnowCoverCInitValue                                     |  0                                                      | Snow Cover (Zone C)
+    TotalCrossSectionAreaInitValue                          |  0                                                      | Total Channel Cross-Section Area
+    CrossSection2AreaInitValue                              |  0                                                      | Cross-Section 2 Area
+    PrevSideflowInitValue                                   |  0                                                      | Previous Sideflow
+    ThetaInit1Value                                         |  0                                                      | Soil Moisture Content (Layer 1a)
+    ThetaInit2Value                                         |  0                                                      | Soil Moisture Content (Layer 1b)
+    ThetaInit3Value                                         |  0                                                      | Soil Moisture Content (Layer 2)
+    DSLRForestInitValue                                     |  1                                                      | Days Since Last Rain (Forest)
+    CumIntForestInitValue                                   |  0                                                      | Cumulative Interception (Forest)
+    ThetaForestInit1Value                                   |  0                                                      | Soil Moisture (Forest Layer 1a)
+    ThetaForestInit2Value                                   |  0                                                      | Soil Moisture (Forest Layer 1b)
+    ThetaForestInit3Value                                   |  0                                                      | Soil Moisture (Forest Layer 2)
+    DSLRIrrigationInitValue                                 |  1                                                      | Days Since Last Rain (Irrigation)
+    CumIntSealedInitValue                                   |  0                                                      | Cumulative Interception (Sealed)
+    ThetaIrrigationInit1Value                               |  0                                                      | Soil Moisture (Irrigation Layer 1a)
+    ThetaIrrigationInit2Value                               |  0                                                      | Soil Moisture (Irrigation Layer 1b)
+    ThetaIrrigationInit3Value                               |  0                                                      | Soil Moisture (Irrigation Layer 2)
+
+  5. Reporting / Output Settings
+   Setting                                                 | Value                                                  | Description
+  ---------------------------------------------------------|--------------------------------------------------------|-----------------------------------------------------------
+    repEndMaps                                             |  1                                                     | Report end-of-run state maps ( .end.nc  files) ✅ Enabled
+    repStateMaps                                           |  0                                                     | Report state maps at intermediate steps ❌ Disabled
+    repStateUpsGauges                                      |  0                                                     | Report state at upstream gauges ❌ Disabled
+    repRateMaps                                            |  0                                                     | Report rate maps ❌ Disabled
+    repMeteoMaps                                           |  0                                                     | Report meteorological maps ❌ Disabled
+    repDischargeTs                                         |  1                                                     | Report discharge time series ( .tss ) ✅ Enabled
+    repWaterLevelTs                                        |  0                                                     | Report water level time series ❌ Disabled
+
+  6. Watershed Area
+
+  •  MaskMap  is set to  $(PathRoot)/maps/area.nc 
+  • The watershed area is  781.836 sq km  (from the previous presentation slide, not explicitly in this XML).
+  ──────
+  Summary:
+  The Cold Start runs for 1826 daily timesteps (from Feb 1, 2018 to Jan 1, 2023, ~5 years). All internal state variables are initialized to zero, requiring a multi-year spin-
+  up. The key outputs are the end-of-run state maps ( .end.nc ) and discharge time series ( .tss ). The end-state maps are specifically designed to be fed into the subsequent
+  Warm Start run.
+
+  [MESSAGE FROM SUBAGENT (Warm Start Config Researcher - cdd707e3-a462-4aab-97c2-78d2a5d3ed76)]: Here are the key configuration details extracted from the LISFLOOD warm start
+  XML file ( warm_start.xml ):
+  ──────
+  ## 1. Simulation Dates
+
+  • CalendarDayStart:  01/01/2023 06:00 
+  • CalendarDayEnd:  02/01/2024 06:00 
+
+  ## 2. Time Steps
+
+  • DtSec (Timestep in seconds):  86400  (daily timestep)
+  • DtSecChannel:  14400  (4-hour sub-timestep for channel routing)
+  • StepStart:  1 
+  • StepEnd:  397  (approximately 13 months of daily timesteps)
+  ## 3. Paths
+
+  • PathRoot:  /input 
+  • PathOut:  /input/output_dataset/out 
+  • PathInit:  /input/output_dataset/out  (This is the same as the cold start's output directory, meaning it reads the cold start's end-state files.)
+  • PathMaps:  $(PathRoot)/maps 
+  • PathParams:  $(PathRoot)/params 
+  • PathMeteoFiles:  $(PathRoot)/meteo_forcing 
+  • PathLAI:  $(PathRoot)/lai 
+  ## 4. Initial State Variables (Warm Start - referencing  .end.nc  files from Cold Start)
+  These are the key variables that are loaded from the cold start output files instead of being set to  0 :
+   Variable Name                                            | Value (File Reference)                                  | Description
+  ----------------------------------------------------------|---------------------------------------------------------|---------------------------------------------------------
+    FrostIndexInitValue                                     |  $(PathInit)/frost.end.nc                               | Frost Index state
+    CumIntInitValue                                         |  $(PathInit)/cumi.end.nc                                | Cumulative Interception
+    DSLRInitValue                                           |  $(PathInit)/dslr.end.nc                                | Days Since Last Rain
+    CumIntForestInitValue                                   |  $(PathInit)/cumf.end.nc                                | Cumulative Interception (Forest)
+    DSLRForestInitValue                                     |  $(PathInit)/dslf.end.nc                                | Days Since Last Rain (Forest)
+    DSLRIrrigationInitValue                                 |  $(PathInit)/dsli.end.nc                                | Days Since Last Rain (Irrigation)
+    CumIntSealedInitValue                                   |  $(PathInit)/cseal.end.nc                               | Cumulative Interception (Sealed Surfaces)
+  Additionally, these variables are initialized with values from the lfbinding section (also referencing end.nc files):
+
+   Variable Name                                            | Value (File Reference)                                  | Description
+  ----------------------------------------------------------|---------------------------------------------------------|---------------------------------------------------------
+    FrostIndexInitValue                                     |  $(PathInit)/frost.end.nc                               | Frost Index
+    CumIntInitValue                                         |  $(PathInit)/cumi.end.nc                                | Cumulative Interception
+    DSLRInitValue                                           |  $(PathInit)/dslr.end.nc                                | Days Since Last Rain
+    CumIntForestInitValue                                   |  $(PathInit)/cumf.end.nc                                | Cumulative Interception (Forest)
+    DSLRForestInitValue                                     |  $(PathInit)/dslf.end.nc                                | Days Since Last Rain (Forest)
+    CumIntSealedInitValue                                   |  $(PathInit)/cseal.end.nc                               | Cumulative Interception (Sealed)
+    DSLRIrrigationInitValue                                 |  $(PathInit)/dsli.end.nc                                | Days Since Last Rain (Irrigation)
+
+  Variables still set to  0  in the warm start (these remain at zero even in the warm start):
+   Variable Name                                            | Value                                                   | Description
+  ----------------------------------------------------------|---------------------------------------------------------|---------------------------------------------------------
+    OFDirectInitValue                                       |  0                                                      | Overland flow (direct runoff)
+    OFOtherInitValue                                        |  0                                                      | Other overland flow
+    ChanCrossSectionInitValue                               |  0                                                      | Channel cross-section area
+    LZInitValue                                             |  0                                                      | Lower Zone (groundwater) storage
+    UZInitValue                                             |  0                                                      | Upper Zone storage
+    SnowCoverAInitValue                                     |  0                                                      | Snow Cover (Zone A)
+    SnowCoverBInitValue                                     |  0                                                      | Snow Cover (Zone B)
+    SnowCoverCInitValue                                     |  0                                                      | Snow Cover (Zone C)
+    TotalCrossSectionAreaInitValue                          |  0                                                      | Total Channel Cross-Section Area
+    CrossSection2AreaInitValue                              |  0                                                      | Cross-Section 2 Area
+    PrevSideflowInitValue                                   |  0                                                      | Previous Sideflow
+    ThetaInit1Value                                         |  0                                                      | Soil Moisture (Layer 1a)
+    ThetaInit2Value                                         |  0                                                      | Soil Moisture (Layer 1b)
+    ThetaInit3Value                                         |  0                                                      | Soil Moisture (Layer 2)
+    ThetaForestInit1Value                                   |  0                                                      | Soil Moisture (Forest Layer 1a)
+    ThetaForestInit2Value                                   |  0                                                      | Soil Moisture (Forest Layer 1b)
+    ThetaForestInit3Value                                   |  0                                                      | Soil Moisture (Forest Layer 2)
+    ThetaIrrigationInit1Value                               |  0                                                      | Soil Moisture (Irrigation Layer 1a)
+    ThetaIrrigationInit2Value                               |  0                                                      | Soil Moisture (Irrigation Layer 1b)
+    ThetaIrrigationInit3Value                               |  0                                                      | Soil Moisture (Irrigation Layer 2)
+
+  ## 5. Reporting / Output Settings
+
+   Setting                                                  | Value                                                   | Description
+  ----------------------------------------------------------|---------------------------------------------------------|---------------------------------------------------------
+    repEndMaps                                              |  1                                                      | Report end-of-run state maps ✅ Enabled
+    repStateMaps                                            |  0                                                      | Report state maps ❌ Disabled
+    repStateUpsGauges                                       |  0                                                      | Report state at upstream gauges ❌ Disabled
+    repRateMaps                                             |  0                                                      | Report rate maps ❌ Disabled
+    repMeteoMaps                                            |  0                                                      | Report meteorological maps ❌ Disabled
+    repDischargeTs                                          |  1                                                      | Report discharge time series ✅ Enabled
+    repWaterLevelTs                                         |  0                                                      | Report water level time series ❌ Disabled
+
+  ## 6. Other Notable Settings
+
+  • Gauges:  /input/reportingStations/outlets.nc 
+  • MaskMap:  $(PathRoot)/maps/area.nc 
+  • netCDFtemplate:  $(PathRoot)/maps/elvstd.nc 
+
+  ## 7. All  .end.nc  File References (Cold Start Outputs Used as Warm Start Inputs)
+
+  Here is the complete, deduplicated list of  .end.nc  files referenced in  warm_start.xml :
+
+  1.  frost.end.nc  — Frost Index
+  2.  cumi.end.nc  — Cumulative Interception
+  3.  dslr.end.nc  — Days Since Last Rain
+  4.  cumf.end.nc  — Cumulative Interception (Forest)
+  5.  dslf.end.nc  — Days Since Last Rain (Forest)
+  6.  dsli.end.nc  — Days Since Last Rain (Irrigation)
+  7.  cseal.end.nc  — Cumulative Interception (Sealed Surfaces)
+  ──────
+  ## Summary
+  The Warm Start runs for 397 daily timesteps (from Jan 1, 2023 to Feb 1, 2024, ~13 months). It picks up where the Cold Start left off by loading 7 end-of-run state files (    
+  .end.nc ) generated by the cold start. The simulation dates are continuous: the cold start ends on  01/01/2023  and the warm start begins on  01/01/2023 . The warm start also
+  generates end-state maps and discharge time series as its outputs.
+
+  [MESSAGE FROM SUBAGENT (Output Files Researcher - f58f870a-bf57-472e-91c1-7f727f1ace18)]: Here are the findings from the LISFLOOD output files:
+  ──────
+  ## 1. Directory Structure of  output_dataset/ 
+
+    output_dataset/                                                                                                                                                             
+    └── out/                                                                                                                                                                    
+        ├── cseal.end.nc   (2.4 KB)  — Cumulative Interception (Sealed) end state                                                                                               
+        ├── cumf.end.nc    (2.4 KB)  — Cumulative Interception (Forest) end state                                                                                               
+        ├── cumi.end.nc    (2.4 KB)  — Cumulative Interception end state                                                                                                        
+        ├── dis.tss        (153 KB)  — Discharge time series                                                                                                                    
+        ├── dslf.end.nc    (2.4 KB)  — Days Since Last Rain (Forest) end state                                                                                                  
+        ├── dsli.end.nc    (2.4 KB)  — Days Since Last Rain (Irrigation) end state                                                                                              
+        ├── dslr.end.nc    (2.4 KB)  — Days Since Last Rain end state                                                                                                           
+        └── frost.end.nc   (2.4 KB)  — Frost Index end state                                                                                                                    
+
+  There are 7 NetCDF  .end.nc  files and 1 TSS time series file.
+  ──────
+  ## 2. Output Files Grouped by Type
+  ### A. End-of-Run State Maps ( .end.nc  files)
+  These NetCDF files capture the model's internal state at the last timestep of the simulation. They are used as inputs for the Warm Start.
+
+   File                                                    | Size                                                    | Description
+  ---------------------------------------------------------|---------------------------------------------------------|----------------------------------------------------------
+    cseal.end.nc                                           | 2,436 bytes                                             | Cumulative interception for sealed (impervious) surfaces
+    cumf.end.nc                                            | 2,436 bytes                                             | Cumulative interception for forest land cover
+    cumi.end.nc                                            | 2,436 bytes                                             | Cumulative interception for general land cover
+    dslf.end.nc                                            | 2,436 bytes                                             | Days since last rainfall event over forest areas
+    dsli.end.nc                                            | 2,436 bytes                                             | Days since last rainfall event over irrigated areas
+    dslr.end.nc                                            | 2,436 bytes                                             | Days since last rainfall event (general)
+    frost.end.nc                                           | 2,436 bytes                                             | Frost index — tracks ground freezing state
+  ### B. Time Series Output ( .tss  file)
+   File                                                     | Size                                                    | Description
+  ----------------------------------------------------------|---------------------------------------------------------|---------------------------------------------------------
+    dis.tss                                                 | 152,877 bytes (~153 KB)                                 | Discharge time series at reporting station(s)
+  ──────
+  ## 3. TSS File Format (First 20 Lines of  dis.tss )
+    timeseries scalar                                                                                                                                                           
+    2                                                                                                                                                                           
+    timestep                                                                                                                                                                    
+    1                                                                                                                                                                           
+             1     0.000000                                                                                                                                                     
+             2     0.000000                                                                                                                                                     
+             3     0.000000                                                                                                                                                     
+             4     0.000000                                                                                                                                                     
+             5     0.000000                                                                                                                                                     
+             6     0.000000                                                                                                                                                     
+             7     0.000000                                                                                                                                                     
+             8     0.000000                                                                                                                                                     
+             9     0.000000                                                                                                                                                     
+            10     0.000000                                                                                                                                                     
+            11     0.000000                                                                                                                                                     
+            12     0.000000                                                                                                                                                     
+            13     0.000000                                                                                                                                                     
+            14     0.000000                                                                                                                                                     
+            15     0.000000                                                                                                                                                     
+            16     0.000000                                                                                                                                                     
+
+  Format Notes:
+
+  • Line 1:  timeseries scalar  — file type identifier
+  • Line 2:  2  — number of columns
+  • Line 3:  timestep  — first column header
+  • Line 4:  1  — second column header (station ID)
+  • Lines 5+: Data rows with  timestep  and  discharge value  (m³/s)
+  Key Observation: The initial discharge values are all  0.000000 , which is consistent with a Cold Start where the model has no water in the system yet. The discharge slowly
+  builds up as the spin-up progresses.
+  ──────
+  ## 4. Discharge Visualization Script ( visualize_discharge.py )
+  The script:
+
+  1. Reads the  dis.tss  file from  output_dataset/out/dis.tss 
+  2. Parses the header to get column names and data
+  3. Creates a styled matplotlib plot with:
+      • Custom color palette:  ['#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#f59e0b'] 
+      • Filled area under the curve ( fill_between )
+      • Clean spines (no top/right borders)
+      • Grid lines with dashed style
+  4. Saves the plot to  discharge_plot.png  (200 DPI, 11×5.5 inches)
+  5. Title: "LISFLOOD Simulated River Discharge (Hydrograph)"
+  6. X-axis: "Time (Days)", Y-axis: "Discharge (m³/s)"
+  ──────
+  ## 5. Discharge Plot Images
+  Two plot images exist in the parent folder:
+
+   File                                                     | Size                                                    | Description
+  ----------------------------------------------------------|---------------------------------------------------------|---------------------------------------------------------
+    discharge_plot.png                                      | 178,517 bytes (~179 KB)                                 | Cold Start discharge hydrograph
+    discharge_plot_warm.png                                 | 138,178 bytes (~138 KB)                                 | Warm Start discharge hydrograph
+  ──────
+  ## Summary
+
+  The LISFLOOD run produced:
+
+  • 7 end-state NetCDF files ( .end.nc ) that capture the model's memory at the final timestep — used as initialization for the Warm Start
+  • 1 discharge time series ( dis.tss ) recording simulated river flow at reporting stations
+  • 2 discharge plot images ( .png ) visualizing the cold and warm start hydrographs

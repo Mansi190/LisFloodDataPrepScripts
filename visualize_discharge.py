@@ -4,7 +4,7 @@ import pandas as pd
 
 # Paths relative to script directory
 script_dir = os.path.dirname(os.path.abspath(__file__))
-tss_path = os.path.join(script_dir, "dis.tss")
+tss_path = os.path.join(script_dir, "output_dataset/out/dis.tss")
 output_image = os.path.join(script_dir, "discharge_plot.png")
 
 # Read TSS file
