@@ -1,0 +1,63 @@
+digraph LISFLOOD_internal_modules {
+    rankdir=TB;
+    graph [fontname="Helvetica", fontsize=15, ranksep=0.7, nodesep=0.45, splines=spline, bgcolor="white",
+           label="Inside LISFLOOD — how the 8 modules pass water to each other\n(nodes = internal water quantities ; edge labels = the module that transforms them)",
+           labelloc="t", fontcolor="#0f172a"];
+    node  [fontname="Helvetica", fontsize=11, penwidth=1.6];
+    edge  [fontname="Helvetica", fontsize=10, color="#6d28d9", fontcolor="#5b21b6", penwidth=1.6, arrowsize=0.8];
+
+    /* entry */
+    node [shape=box, style="filled", fillcolor="#bae6fd", color="#0369a1"];
+    Pin  [label="Precipitation\n(model input)"];
+
+    /* internal stores */
+    node [shape=box, style="filled,rounded", fillcolor="#dbeafe", color="#1d4ed8"];
+    W1   [label="Soil moisture\nlayer 1"];
+    W2   [label="Soil moisture\nlayer 2"];
+    UZ   [label="Upper GW zone\n(UZ)"];
+    LZ   [label="Lower GW zone\n(LZ)"];
+
+    /* internal fluxes */
+    node [shape=box, style="filled", fillcolor="#f1f5f9", color="#64748b"];
+    RM   [label="Rain + snowmelt"];
+    Wav  [label="Throughfall\n(water available)"];
+    INF  [label="Infiltration"];
+    Rs   [label="Surface runoff"];
+    Dpref[label="Preferential flow"];
+    Seep [label="Seepage to GW"];
+    Quz  [label="Quick flow"];
+    Qlz  [label="Baseflow"];
+    qch  [label="Channel\nlateral inflow"];
+
+    /* outputs */
+    node [shape=box, style="filled,rounded", fillcolor="#dcfce7", color="#15803d"];
+    ETa  [label="Actual ET"];
+    Loss [label="GW loss\n(leaves basin)"];
+    Q    [label="DISCHARGE\ndis.tss", fillcolor="#86efac", penwidth=2.2, fontsize=13];
+
+    /* ============ module-by-module water flow (edge label = module) ============ */
+    Pin  -> RM   [label="①  Snow & Frost\n(rain/snow split, degree-day melt)"];
+    RM   -> Wav  [label="②  Interception\n(canopy storage, leaf drainage)"];
+    Wav  -> ETa  [label="②  intercepted-water\nevaporation", color="#15803d", fontcolor="#166534", style=dashed];
+
+    Wav  -> INF  [label="④  Infiltration\n(Xinanjiang)"];
+    Wav  -> Rs   [label="④  infiltration\nexcess"];
+    Wav  -> Dpref[label="④  Preferential\nflow"];
+
+    INF  -> W1   [label="into topsoil"];
+    W1   -> ETa  [label="③  Evapotranspiration\n(soil evap + transpiration)", color="#15803d", fontcolor="#166534"];
+    W1   -> W2   [label="⑤  Soil moisture\n(percolation L1→L2, Van Genuchten)"];
+    W2   -> Seep [label="⑤  drainage to\ngroundwater"];
+
+    Dpref-> UZ   [label="bypass\nrecharge"];
+    Seep -> UZ   [label="⑥  recharge"];
+    UZ   -> Quz  [label="⑥  Groundwater\nQuz = UZ / Tuz"];
+    UZ   -> LZ   [label="⑥  percolation\nUZ→LZ"];
+    LZ   -> Qlz  [label="⑥  Groundwater\nQlz = LZ / Tlz"];
+    LZ   -> Loss [label="⑥  deep loss", color="#15803d", fontcolor="#166534"];
+
+    Rs   -> qch  [label="⑦  Overland routing\n(to nearest channel)"];
+    Quz  -> qch  [label="→ channel"];
+    Qlz  -> qch  [label="→ channel"];
+    qch  -> Q    [label="⑧  Channel routing\n(kinematic wave)"];
+}

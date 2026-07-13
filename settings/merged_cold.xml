@@ -22,7 +22,7 @@
     <textvar name="DtSec"            value="86400"/>   <!-- daily timestep -->
     <textvar name="DtSecChannel"     value="3600"/>    <!-- sub-daily channel routing -->
 
-    <textvar name="PathRoot"         value="/input/output_dataset"/>
+    <textvar name="PathRoot"         value="/input/inputs"/>
     <textvar name="PathMaps"         value="./output_dataset/maps"/>
     <textvar name="PathMeteo"        value="./output_dataset/meteo"/>
     <textvar name="PathOut"          value="./lisflood_run_output"/>
@@ -108,7 +108,7 @@
   <!-- ══════════════════════════════════════════════════════════════
        GAUGES AND MONITORING SITES
   ═══════════════════════════════════════════════════════════════ -->
-  <textvar name="Gauges"  value="reportingStations/outlets.nc"/>
+  <textvar name="Gauges"  value="inputs/reportingStations/outlets.nc"/>
 
   <!-- ══════════════════════════════════════════════════════════════
        METEOROLOGICAL FORCING (NetCDF stacks)

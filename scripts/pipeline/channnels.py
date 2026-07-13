@@ -94,77 +94,6 @@ def validate_alignment(tif_paths: dict, info: GridInfo):
     else:
         log("  All outputs pass alignment check  V  *", "DONE")
 
-def visualize(chan, changrad, chanbw, chanbnkf, chanman, chanleng, mask, info):
-    log("STEP 6 - Creating CHANNEL_VISUAL_CHECK.png", "STEP")
-    try:
-        import matplotlib.pyplot as plt
-        fig, axes = plt.subplots(2, 4, figsize=(24, 11))
-        fig.suptitle(
-            f"LISFLOOD Channel Maps (GEE Logic) - {RESOLUTION_M}m  |  {info.crs}\n"
-            f"Grid: origin=({info.transform.c:.1f}, {info.transform.f:.1f})  "
-            f"{info.width}x{info.height} cells",
-            fontsize=10, fontweight="bold"
-        )
-
-        def panel(ax, data, title, cmap, label, nodata=-9000, is_boolean=False):
-            bg = np.zeros_like(mask, dtype=np.float32)
-            bg[mask == 0] = np.nan
-            ax.imshow(bg, cmap="Greys", vmin=-1, vmax=1, alpha=0.15, interpolation="nearest")
-
-            d = data.astype(np.float32).copy()
-            d[d <= nodata] = np.nan
-            if is_boolean:
-                d[d == 0] = np.nan
-                
-            im = ax.imshow(d, cmap=cmap, interpolation="nearest")
-            plt.colorbar(im, ax=ax, label=label, shrink=0.85)
-            ax.set_title(title, fontsize=9, fontweight="bold")
-            ax.axis("off")
-
-        panel(axes[0, 0], chan,     "chan.nc\n(Boolean)", "Blues",   "1",  nodata=-0.5, is_boolean=True)
-        panel(axes[0, 1], changrad, "changrad.nc\n[m/m]", "YlOrRd", "m/m")
-        panel(axes[0, 2], chanbw,   "chanbw.nc\n[m]",    "GnBu",   "m")
-        panel(axes[0, 3], chanleng, "chanleng.nc\n[m]",  "Purples", "m")
-        panel(axes[1, 0], chanbnkf, "chanbnkf.nc\n[m]",  "PuBu",   "m")
-        panel(axes[1, 1], chanman,  "chanman.nc\n[-]",   "RdYlGn", "n")
-
-        # Hide empty subplot
-        axes[1, 2].axis("off")
-
-        ax = axes[1, 3]
-        ax.axis("off")
-        proof = (
-            "ALIGNMENT PROOF\n"
-            "=======================\n\n"
-            "All 7 files share:\n\n"
-            f"  Rows   : {info.height}\n"
-            f"  Cols   : {info.width}\n"
-            f"  Pixel  : {RESOLUTION_M}m x {RESOLUTION_M}m\n"
-            f"  CRS    : {info.crs}\n"
-            f"  Origin :\n"
-            f"    E = {info.transform.c:.2f} m\n"
-            f"    N = {info.transform.f:.2f} m\n\n"
-            "=======================\n\n"
-            "LISFLOOD .ini settings:\n\n"
-            "  Channels      = chan.nc\n"
-            "  ChanGrad      = changrad.nc\n"
-            "  ChanMan       = chanman.nc\n"
-            "  ChanLength    = chanleng.nc\n"
-            "  ChanBottomWidth = chanbw.nc\n"
-            "  ChanSdXdY     = chans.nc\n"
-            "  ChanDepthThreshold = chanbnkf.nc"
-        )
-        ax.text(0.05, 0.97, proof, transform=ax.transAxes,
-                fontsize=9, va="top", fontfamily="monospace",
-                bbox=dict(boxstyle="round", facecolor="#e8f4f8", alpha=0.9))
-
-        plt.tight_layout()
-        out = os.path.join(_cfg.BASE_DIR, "CHANNEL_VISUAL_CHECK.png")
-        plt.savefig(out, dpi=150, bbox_inches="tight")
-        plt.close()
-        log(f"  * {out}")
-    except ImportError:
-        log("pip install matplotlib to enable visualization", "WARN")
 
 def print_summary(tif_paths: dict, map_paths: dict, info: GridInfo):
     print("\n" + "=" * 62)
@@ -188,7 +117,6 @@ def print_summary(tif_paths: dict, map_paths: dict, info: GridInfo):
         val = map_paths.get(key, f"W  run manual_convert.sh for {key}.nc")
         print(f"    {ini_name} = {val}")
     print(f"\n  Output : {OUTPUT_DIR}/maps/")
-    print(f"  Check  : {OUTPUT_DIR}/CHANNEL_VISUAL_CHECK.png")
     print("=" * 62 + "\n")
 
 
@@ -426,8 +354,6 @@ def main():
     map_paths = convert_to_netcdf(tif_paths)
     validate_alignment(tif_paths, info)
     
-    visualize(results['chan'], results['changrad'], results['chanbw'], 
-              results['chanbnkf'], results['chanman'], results['chanleng'], mask, info)
 
     print_summary(tif_paths, map_paths, info)
 

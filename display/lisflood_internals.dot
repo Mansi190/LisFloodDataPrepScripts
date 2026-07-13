@@ -1,0 +1,118 @@
+digraph LISFLOOD_internals {
+    rankdir=LR;
+    graph [fontname="Helvetica", fontsize=13, ranksep=1.0, nodesep=0.3, splines=spline, bgcolor="white"];
+    node  [fontname="Helvetica", fontsize=10];
+    edge  [fontname="Helvetica", fontsize=8, color="#475569", fontcolor="#1e293b"];
+
+    /* ================= NODE STYLES =================
+       teal   = meteorological forcing (inputs)
+       amber  = parameter / property maps (inputs, many are calibration knobs)
+       blue   = internal stores       (water held somewhere)
+       grey   = internal fluxes        (water moving)
+       green  = model outputs
+    */
+
+    // ---- forcing inputs ----
+    node [shape=cylinder, style=filled, fillcolor="#ccfbf1", color="#0f766e"];
+    P    [label="Precipitation\nP"];
+    Tavg [label="Air temp\nTavg"];
+    ET0  [label="Ref. ET\nET0"];
+    ES0  [label="Soil-evap pot.\nES0"];
+    EW0  [label="Open-water\nevap  EW0"];
+
+    // ---- parameter / property inputs (★ = calibration knob) ----
+    node [shape=note, style=filled, fillcolor="#fef3c7", color="#b45309"];
+    LAI    [label="LAI"];
+    Cm     [label="Cm ★\nsnowmelt factor"];
+    bpar   [label="b ★\nXinanjiang shape"];
+    ksat   [label="ksat, θs, θr,\nα, λ  (Van Genuchten)"];
+    cpref  [label="cpref ★\npref-flow shape"];
+    Tuz    [label="Tuz ★\nupper-zone time"];
+    Tlz    [label="Tlz ★\nlower-zone time"];
+    GWperc [label="GWperc ★\nUZ→LZ percolation"];
+    floss  [label="floss ★\ndeep loss"];
+    chanpar[label="chanman ★, chanbw,\nchangrad  (channel geom.)"];
+
+    // ---- internal stores ----
+    node [shape=box, style="filled,rounded", fillcolor="#dbeafe", color="#1d4ed8"];
+    Snow  [label="Snow pack"];
+    Int   [label="Interception\nstore"];
+    W1    [label="Soil layer 1\n(w1)"];
+    W2    [label="Soil layer 2\n(w2)"];
+    UZ    [label="Upper GW zone\n(UZ)"];
+    LZ    [label="Lower GW zone\n(LZ)"];
+
+    // ---- internal fluxes ----
+    node [shape=box, style=filled, fillcolor="#f1f5f9", color="#64748b"];
+    Rain  [label="Rain R"];
+    Melt  [label="Snowmelt M"];
+    Wav   [label="Water available\nWav"];
+    INF   [label="Infiltration\nINFact"];
+    Dpref [label="Preferential\nflow"];
+    Rs    [label="Surface runoff\nRs"];
+    D12   [label="Percolation\nL1→L2"];
+    D2gw  [label="Seepage\nL2→UZ"];
+    Quz   [label="Quick flow\nQuz"];
+    Qlz   [label="Baseflow\nQlz"];
+    qch   [label="Channel\nlateral inflow"];
+
+    // ---- outputs ----
+    node [shape=box, style="filled,rounded", fillcolor="#dcfce7", color="#15803d", fontsize=11];
+    ETa   [label="Actual ET\n(ES + Ta)"];
+    Dloss [label="GW loss\n(leaves basin)"];
+    Q     [label="Discharge\ndis.tss"];
+
+    /* ================= MAIN WATER-BALANCE FLOW (solid edges = process) ================= */
+    P    -> Rain [label="rain/snow split\n(T threshold, eq 2-1)"];
+    P    -> Snow [label="if Tavg < 1°C"];
+    Snow -> Melt [label="degree-day\nmelt (eq 2-2)"];
+    P    -> Int  [label="canopy\ninterception (eq 2-6)"];
+    Int  -> ETa  [label="evap. of intercepted\nwater (eq 2-10)"];
+
+    Rain -> Wav  [label="throughfall\n(eq 2-12)"];
+    Melt -> Wav;
+    Int  -> Wav  [label="leaf drainage\n(eq 2-11)"];
+
+    Wav  -> INF   [label="Xinanjiang\ninfiltration (eq 2-24)"];
+    Wav  -> Dpref [label="bypass\nflow (eq 2-25)"];
+    Wav  -> Rs    [label="infiltration excess\n+ direct runoff (eq 2-27)"];
+
+    INF  -> W1;
+    W1   -> ETa   [label="soil evap (2-20)\n+ transpiration (2-17)"];
+    W1   -> D12   [label="Van Genuchten\nK(θ)  (eq 2-31)"];
+    D12  -> W2;
+    W2   -> D2gw  [label="Van Genuchten\ndrainage (eq 2-39)"];
+
+    Dpref -> UZ;
+    D2gw  -> UZ   [label="recharge"];
+    UZ    -> Quz  [label="Quz = UZ / Tuz\n(eq 2-42)"];
+    UZ    -> LZ   [label="Duz,lz = min(GWperc, UZ)\n(eq 2-44)"];
+    LZ    -> Qlz  [label="Qlz = LZ / Tlz\n(eq 2-43)"];
+    LZ    -> Dloss[label="Dloss = floss · LZ\n(eq 2-45)"];
+
+    Rs  -> qch  [label="overland kinematic\nwave (to channel)"];
+    Quz -> qch;
+    Qlz -> qch  [label="sum of contributing\npixels"];
+    qch -> Q    [label="channel kinematic-wave\nrouting (eq 2-55..2-58)"];
+
+    /* ================= PARAMETER CONTROL (dashed edges = 'this input parameterises that process') ================= */
+    edge [style=dashed, color="#b45309", fontcolor="#92400e", arrowhead=vee, arrowsize=0.6];
+    Cm     -> Melt;
+    LAI    -> Int;
+    LAI    -> ETa;
+    bpar   -> INF;
+    ksat   -> INF;
+    ksat   -> D12;
+    ksat   -> D2gw;
+    cpref  -> Dpref;
+    ET0    -> ETa;
+    ES0    -> ETa;
+    EW0    -> Int;
+    Tuz    -> Quz;
+    Tlz    -> Qlz;
+    GWperc -> LZ;
+    floss  -> Dloss;
+    chanpar-> Q;
+    Tavg   -> Melt;
+    Tavg   -> Rain;
+}

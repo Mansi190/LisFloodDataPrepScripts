@@ -164,7 +164,7 @@
                 **************************************************************
             </comment>
 
-            <textvar name="PathRoot" value="/input/output_dataset">
+            <textvar name="PathRoot" value="/input/inputs">
                 <comment>
                     Root directory
                 </comment>
@@ -188,7 +188,7 @@
                 </comment>
             </textvar>
 
-            <textvar name="Gauges" value="/input/reportingStations/outlets.nc">
+            <textvar name="Gauges" value="/input/inputs/reportingStations/outlets.nc">
                 <comment>
                     -7.85 41.15 -7.75 41.15 -7.35 41.15 -7.25 41.15 -7.15 41.15 -7.05 41.15 -5.85 41.75 # Duoro
                     6.15 51.85
@@ -227,13 +227,13 @@
                 <comment>Path to channels</comment>
             </textvar>
 
-            <textvar name="PathOut" value="$(PathRoot)/out">
+            <textvar name="PathOut" value="/input/outputs/cold">
                 <comment>
                     Output path
                 </comment>
             </textvar>
 
-            <textvar name="PathInit" value="$(PathRoot)/out">
+            <textvar name="PathInit" value="/input/outputs/cold">
                 <comment>
                     Path of the initial value maps e.g. lzavin.map
                 </comment>
@@ -361,7 +361,7 @@
                 </comment>
             </textvar>
 
-            <textvar name="ReportSteps" value="endtime">
+            <textvar name="ReportSteps" value="1..9999">
                 <comment>
                     1..9999
                     Time steps at which to write model state maps (i.e. only

@@ -1,0 +1,102 @@
+digraph LISFLOOD_modules {
+    rankdir=LR;
+    graph [fontname="Helvetica", fontsize=15, ranksep=1.3, nodesep=0.28, splines=spline, bgcolor="white",
+           label="LISFLOOD module INPUTS — which input maps each module requires and which outputs it generates",
+           labelloc="t", fontcolor="#0f172a"];
+    node  [fontname="Helvetica", fontsize=10];
+    edge  [fontname="Helvetica", fontsize=8, color="#94a3b8", fontcolor="#475569", arrowsize=0.7];
+
+    /* ===================== INPUT MAPS / PARAMETERS (left) =====================
+       amber note = property/parameter map     teal cylinder = meteo forcing        */
+    node [shape=note, style=filled, fillcolor="#fef3c7", color="#b45309"];
+
+    subgraph cluster_topo { label="Topography maps"; color="#fcd34d"; style=rounded;
+        m_mask [label="area / mask"]; m_ldd [label="ldd\n(drain direction)"];
+        m_grad [label="gradient"]; m_elv [label="elvstd"];
+        m_pix [label="pixleng, pixarea"];
+    }
+    subgraph cluster_chan { label="Channel-geometry maps"; color="#fcd34d"; style=rounded;
+        c_mask [label="chan (mask)"]; c_man [label="chanman\n(Manning n)"];
+        c_bw [label="chanbw\n(bottom width)"]; c_bnkf [label="chanbnkf\n(bankfull depth)"];
+        c_grad [label="changrad"]; c_len [label="chanleng"]; c_s [label="chans\n(side slope)"];
+    }
+    subgraph cluster_frac { label="Land-cover fraction maps"; color="#fcd34d"; style=rounded;
+        f_for [label="fracforest"]; f_oth [label="fracother"];
+        f_seal [label="fracsealed\n(= direct-runoff frac)"]; f_wat [label="fracwater"];
+    }
+    subgraph cluster_lcsoil { label="Land-cover + soil maps"; color="#fcd34d"; style=rounded;
+        l_kc [label="cropcoef (Kc)"]; l_man [label="mannings\n(surface n)"];
+        l_dep [label="soildep1, soildep2"]; l_cr [label="crgrnum"];
+    }
+    subgraph cluster_soilhyd { label="Soil-hydraulic maps"; color="#fcd34d"; style=rounded;
+        s_ts [label="thetas, thetar"]; s_k [label="ksat1, ksat2"];
+        s_al [label="alpha, lambda\n(Van Genuchten)"];
+    }
+    subgraph cluster_par { label="Calibration parameters ★"; color="#fca5a5"; style=rounded;
+        p_cm [label="SnowMeltCoef (Cm)"]; p_b [label="b_Xinanjiang"];
+        p_pref [label="PowerPrefFlow"]; p_tuz [label="UpperZoneTime (Tuz)"];
+        p_tlz [label="LowerZoneTime (Tlz)"]; p_gw [label="GwPercValue"];
+        p_loss [label="GwLossFraction"]; p_ccm [label="CalChanMan\n(Manning multiplier)"];
+    }
+
+    node [shape=cylinder, style=filled, fillcolor="#ccfbf1", color="#0f766e"];
+    subgraph cluster_met { label="Meteo forcing (map stacks)"; color="#5eead4"; style=rounded;
+        me_p [label="pr (P)"]; me_t [label="ta (Tavg)"];
+        me_et [label="et (ET0)"]; me_es [label="es (ES0)"]; me_ew [label="e0 (EW0)"];
+    }
+    lai [label="LAI\n(lai_forest, lai_other)"];
+
+    /* ===================== MODULES (middle spine) ===================== */
+    node [shape=component, style=filled, fillcolor="#ede9fe", color="#6d28d9", fontsize=12, penwidth=1.8];
+    MOD_snow  [label="① Snow & Frost"];
+    MOD_int   [label="② Interception"];
+    MOD_et    [label="③ Evapotranspiration"];
+    MOD_inf   [label="④ Infiltration +\nSurface runoff +\nPreferential flow"];
+    MOD_soil  [label="⑤ Soil moisture\n(2-layer redistribution)"];
+    MOD_gw    [label="⑥ Groundwater\n(2 linear reservoirs)"];
+    MOD_ovr   [label="⑦ Overland routing"];
+    MOD_chan  [label="⑧ Channel routing\n(kinematic wave)"];
+
+    /* ===================== OUTPUTS (right) ===================== */
+    node [shape=box, style="filled,rounded", fillcolor="#dcfce7", color="#15803d", fontsize=10];
+    O_snow [label="snow cover (scova/b/c)\nfrost index"];
+    O_et   [label="actual ET\n(esact, tact, etact)"];
+    O_soil [label="soil moisture\n(th1, th2)"];
+    O_gw   [label="uz, lz storage\nGW loss"];
+    O_dis  [label="DISCHARGE\ndis.tss / chanq / chcro\n+ water level", penwidth=2.2, fillcolor="#86efac", fontsize=12];
+
+    /* ===================== INPUT -> MODULE (what each module requires) ===================== */
+    me_p -> MOD_snow; me_t -> MOD_snow; m_elv -> MOD_snow [label="3 elev. zones"]; p_cm -> MOD_snow [style=dashed,color="#b45309"];
+    me_p -> MOD_int;  lai -> MOD_int;   me_ew -> MOD_int;
+    me_et -> MOD_et;  me_es -> MOD_et;  l_kc -> MOD_et;  lai -> MOD_et;
+    s_k -> MOD_inf [label="ksat1"]; p_b -> MOD_inf [style=dashed,color="#b45309"]; p_pref -> MOD_inf [style=dashed,color="#b45309"]; f_seal -> MOD_inf [label="impervious frac"];
+    s_ts -> MOD_soil; s_k -> MOD_soil; s_al -> MOD_soil; l_dep -> MOD_soil;
+    p_tuz -> MOD_gw [style=dashed,color="#b45309"]; p_tlz -> MOD_gw [style=dashed,color="#b45309"]; p_gw -> MOD_gw [style=dashed,color="#b45309"]; p_loss -> MOD_gw [style=dashed,color="#b45309"];
+    m_ldd -> MOD_ovr; m_grad -> MOD_ovr; l_man -> MOD_ovr [label="surface n"]; m_pix -> MOD_ovr;
+    m_ldd -> MOD_chan; c_mask -> MOD_chan; c_man -> MOD_chan; c_bw -> MOD_chan; c_bnkf -> MOD_chan;
+    c_grad -> MOD_chan; c_len -> MOD_chan; c_s -> MOD_chan; p_ccm -> MOD_chan [style=dashed,color="#b45309"];
+    m_mask -> MOD_chan [style=dotted,label="grid ↔ volume"];
+
+    /* fraction maps weight every land-surface module */
+    f_for -> MOD_et [style=dotted]; f_oth -> MOD_et [style=dotted];
+
+    /* ===================== MODULE -> MODULE (internal water flow) ===================== */
+    edge [color="#7c3aed", fontcolor="#5b21b6", penwidth=2.0, arrowsize=0.9, style=bold];
+    MOD_snow -> MOD_int  [label="snowmelt +\nrain"];
+    MOD_int  -> MOD_inf  [label="throughfall\n(water available)"];
+    MOD_inf  -> MOD_soil [label="infiltration"];
+    MOD_inf  -> MOD_gw   [label="preferential\nflow"];
+    MOD_inf  -> MOD_ovr  [label="surface runoff"];
+    MOD_soil -> MOD_et   [label="soil moisture", dir=both, color="#a78bfa"];
+    MOD_soil -> MOD_gw   [label="seepage to\ngroundwater"];
+    MOD_gw   -> MOD_chan [label="quick flow +\nbaseflow"];
+    MOD_ovr  -> MOD_chan [label="runoff to\nnearest channel"];
+
+    /* ===================== MODULE -> OUTPUT (what each generates) ===================== */
+    edge [color="#15803d", fontcolor="#166534", penwidth=1.6, style=solid];
+    MOD_snow -> O_snow;
+    MOD_et   -> O_et;
+    MOD_soil -> O_soil;
+    MOD_gw   -> O_gw;
+    MOD_chan -> O_dis;
+}

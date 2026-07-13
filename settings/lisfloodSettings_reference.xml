@@ -197,7 +197,7 @@ This is necessary when using projected coordinates (x,y)
 <comment>NetCDF area mask (1=active cell, NaN=outside domain)</comment>
 </textvar>
 
-<textvar name="Gauges" value="/input/reportingStations/outlets.nc">
+<textvar name="Gauges" value="/input/inputs/reportingStations/outlets.nc">
 <comment>Outlet/gauge map with reporting station IDs</comment>
 </textvar>
 

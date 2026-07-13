@@ -1,0 +1,7 @@
+# GHSA streamflow bulk data — re-downloadable from Zenodo (record 15258773),
+# too large for git/GitHub (748 MB zip + large extracts). Everything else,
+# including code, pipeline inputs/outputs, metadata and derived outputs, is tracked.
+streamflow/ghsa/raw/
+streamflow/ghsa/timeseries/
+streamflow/ghsa/gis/by_station/
+streamflow/ghsa/pdfs/

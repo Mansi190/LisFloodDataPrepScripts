@@ -1,0 +1,121 @@
+digraph LISFLOOD_pipeline {
+    rankdir=LR;
+    graph [fontname="Helvetica", fontsize=12, ranksep=1.1, nodesep=0.35, splines=spline, bgcolor="white"];
+    node  [fontname="Helvetica", fontsize=10];
+    edge  [fontname="Helvetica", fontsize=8, color="#64748b", fontcolor="#334155"];
+
+    // ── legend-ish styling ──
+    // sources = cylinders (teal), input maps = boxes (blue), model = hexagon (violet), outputs = boxes (green)
+
+    /* ============ RAW DATA SOURCES (GEE) ============ */
+    node [shape=cylinder, style=filled, fillcolor="#ccfbf1", color="#0f766e"];
+    srtm    [label="SRTM 30 m DEM\n(USGS/SRTMGL1_003)"];
+    merit   [label="MERIT Hydro\n(flow dir / acc)"];
+    drain   [label="CoreStack\ndrainage lines"];
+    lulc_src[label="CoreStack LULC v3\n(2024–25)"];
+    soil_src[label="SoilGrids ISRIC\n(sand/silt/clay/SOC)"];
+    chirps  [label="CHIRPS\ndaily rainfall"];
+    era5    [label="ERA5-Land\ndaily (T, wind, radiation…)"];
+    modis   [label="MODIS LAI\n(MCD15A3H)"];
+
+    /* ============ PIPELINE INPUT MAPS (LISFLOOD inputs) ============ */
+    node [shape=box, style="filled,rounded", fillcolor="#dbeafe", color="#1d4ed8"];
+
+    subgraph cluster_topo {
+        label="Topography"; color="#93c5fd"; style=rounded; fontcolor="#1e3a8a";
+        area [label="area / mask"]; dem [label="dem_300m"];
+        ldd [label="ldd"]; grad [label="gradient"]; elvstd [label="elvstd"];
+    }
+    subgraph cluster_chan {
+        label="Channels"; color="#93c5fd"; style=rounded; fontcolor="#1e3a8a";
+        chan [label="chan, changrad,\nchanman, chanleng,\nchanbw, chans, chanbnkf"];
+    }
+    subgraph cluster_lc {
+        label="Land cover"; color="#93c5fd"; style=rounded; fontcolor="#1e3a8a";
+        frac [label="fracforest, fracother,\nfracsealed, fracwater"];
+        lcpar [label="cropcoef, crgrnum,\nmannings, soildep"];
+    }
+    subgraph cluster_soil {
+        label="Soil hydraulics"; color="#93c5fd"; style=rounded; fontcolor="#1e3a8a";
+        soilhyd [label="thetas, thetar,\nalpha, lambda, ksat\n(layers 1 & 2)"];
+    }
+    subgraph cluster_met {
+        label="Meteo forcing"; color="#93c5fd"; style=rounded; fontcolor="#1e3a8a";
+        prta [label="pr, ta"];
+        lisvap_in [label="tn, tx, rg, ws, pd"];
+        et0 [label="et, es, e0\n(potential ET)"];
+        lat [label="lat grid"];
+    }
+    lai [label="lai_forest, lai_other"];
+    outlets [label="outlets\n(gauge)"];
+
+    /* ============ MODEL ============ */
+    node [shape=hexagon, style=filled, fillcolor="#ede9fe", color="#6d28d9", fontsize=12];
+    lisflood [label="LISFLOOD\nsoil water balance + Xinanjiang\ninfiltration + 2 GW linear reservoirs\n+ kinematic-wave routing"];
+
+    /* ============ MODEL OUTPUTS ============ */
+    node [shape=box, style="filled,rounded", fillcolor="#dcfce7", color="#15803d", fontsize=10];
+    dis [label="dis.tss\n(discharge hydrograph)"];
+    statemaps [label="state maps\n(soil moisture, UZ/LZ,\nsnow, frost, .end.nc)"];
+    fluxmaps [label="flux / rate maps\n(runoff, ET, recharge)"];
+    upstss [label="upstream TSS\n(rain, ET, runoff avg)"];
+
+    /* ============ EDGES = methodology / scripts ============ */
+    // topography — pysheds
+    srtm -> area   [label="topographyMapsScript\nreproject → 300 m grid"];
+    srtm -> dem    [label="10×10 block mean"];
+    srtm -> ldd    [label="pysheds: fill_pits\n→ flowdir"];
+    srtm -> grad   [label="slope"];
+    srtm -> elvstd [label="sub-pixel std-dev"];
+    area -> ldd    [style=dashed, arrowhead=none, label="mask"];
+
+    // channels
+    merit -> chan  [label="channnels.py\npysheds flowdir"];
+    drain -> chan  [label="rasterize\ndrainage network"];
+    srtm  -> chan  [label="width/depth\ngeomorph. eqns"];
+    lulc_src -> chan [style=dashed, label="Manning n\nby land cover"];
+
+    // land cover
+    lulc_src -> frac  [label="frac_lulc\nreproject → area fractions"];
+    lulc_src -> lcpar [label="lulc_cover\nlookup tables"];
+    frac -> lcpar     [style=dashed, arrowhead=none];
+
+    // soil — PTF
+    soil_src -> soilhyd [label="soil_preprocessing\nthickness-weighted avg\n→ Van Genuchten PTF"];
+    frac -> soilhyd     [style=dashed, label="forest/other\nsplit"];
+
+    // meteo
+    chirps -> prta [label="meteo_forcing\nreproject"];
+    era5   -> prta [label="temperature"];
+    era5   -> lisvap_in [label="lisvap inputs\n(tn,tx,rg,ws,pd)"];
+    area   -> lat  [label="generate_lat_nc"];
+    lisvap_in -> et0 [label="LISVAP\nPenman-Monteith"];
+    lat -> et0       [style=dashed, arrowhead=none, label="Ra"];
+
+    // LAI
+    modis -> lai [label="lai_forcing\nresample → monthly"];
+    frac  -> lai [style=dashed, label="forest/other\nmask"];
+
+    // outlets
+    dem -> outlets [label="make_outlets\nsnap to max flow-acc"];
+    chan -> outlets [style=dashed, arrowhead=none];
+
+    /* inputs feed the model */
+    edge [color="#7c3aed", fontcolor="#5b21b6", style=bold, arrowsize=0.8];
+    {area dem ldd grad elvstd} -> lisflood [label="grid + routing"];
+    chan    -> lisflood [label="channel geom."];
+    frac    -> lisflood;
+    lcpar   -> lisflood;
+    soilhyd -> lisflood [label="soil params"];
+    prta    -> lisflood [label="forcing"];
+    et0     -> lisflood;
+    lai     -> lisflood;
+    outlets -> lisflood [label="gauge loc."];
+
+    /* model produces outputs */
+    edge [color="#15803d", fontcolor="#166534"];
+    lisflood -> dis       [label="kinematic-wave\nrouting"];
+    lisflood -> statemaps [label="repStateMaps /\nrepEndMaps"];
+    lisflood -> fluxmaps  [label="repRateMaps"];
+    lisflood -> upstss    [label="repRateUpsGauges"];
+}

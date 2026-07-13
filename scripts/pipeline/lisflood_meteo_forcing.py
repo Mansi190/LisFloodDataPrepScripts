@@ -185,58 +185,6 @@ def process_and_save(pr_tifs, ta_tifs, info, mask):
     
     return ds_pr, ds_ta
 
-def visualize(ds_pr, ds_ta, info):
-    log("STEP 3 - Creating METEO_VISUAL_CHECK.png (Timeseries Graph)", "STEP")
-    try:
-        import matplotlib.pyplot as plt
-        import pandas as pd
-        
-        # Calculate the spatial mean for each time step, ignoring NODATA
-        pr_masked = ds_pr['pr'].where(ds_pr['pr'] != NODATA_VAL)
-        ta_masked = ds_ta['ta'].where(ds_ta['ta'] != NODATA_VAL)
-        
-        # Calculate spatial mean over 'y' and 'x' dimensions
-        mean_pr = pr_masked.mean(dim=['y', 'x'])
-        mean_ta = ta_masked.mean(dim=['y', 'x'])
-        
-        # Extract times and values
-        times = pd.to_datetime(mean_pr.time.values)
-        vals_pr = mean_pr.values
-        vals_ta = mean_ta.values
-        
-        fig, ax1 = plt.subplots(figsize=(12, 6))
-        fig.suptitle(
-            f"Basin-Average Meteorological Timeseries  |  {info.crs}",
-            fontsize=14, fontweight="bold"
-        )
-        
-        # Plot Temperature on left y-axis
-        color_ta = 'tab:red'
-        ax1.set_xlabel('Date', fontweight="bold")
-        ax1.set_ylabel('Air Temperature (°C)', color=color_ta, fontweight="bold")
-        ax1.plot(times, vals_ta, color=color_ta, linewidth=2, label='Mean Temperature')
-        ax1.tick_params(axis='y', labelcolor=color_ta)
-        ax1.grid(True, linestyle='--', alpha=0.7)
-        
-        # Plot Precipitation on right y-axis (inverted or normal, let's do normal bar chart)
-        ax2 = ax1.twinx()
-        color_pr = 'tab:blue'
-        ax2.set_ylabel('Precipitation (mm/day)', color=color_pr, fontweight="bold")
-        ax2.bar(times, vals_pr, color=color_pr, alpha=0.6, width=1.0, label='Precipitation')
-        ax2.tick_params(axis='y', labelcolor=color_pr)
-        
-        # Add a combined legend
-        lines_1, labels_1 = ax1.get_legend_handles_labels()
-        lines_2, labels_2 = ax2.get_legend_handles_labels()
-        ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=2)
-        
-        plt.tight_layout()
-        out = os.path.join(_cfg.BASE_DIR, "METEO_VISUAL_CHECK.png")
-        plt.savefig(out, dpi=150, bbox_inches="tight")
-        plt.close()
-        log(f"  * {out}")
-    except ImportError:
-        pass
 
 def main():
     print("\n" + "=" * 65)
@@ -252,7 +200,6 @@ def main():
     
     ds_pr, ds_ta = process_and_save(pr_tifs, ta_tifs, info, mask)
     
-    visualize(ds_pr, ds_ta, info)
     
     print("\n" + "=" * 65)
     print("  ★ DONE - Meteorological data perfectly aligned and stacked")

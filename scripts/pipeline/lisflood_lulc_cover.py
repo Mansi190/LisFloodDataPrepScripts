@@ -119,54 +119,6 @@ def validate_alignment(tif_paths: dict, info):
     else:
         log("  All outputs pass alignment check  V  *", "DONE")
 
-def visualize(maps, mask, info):
-    log("STEP 4 - Creating PARAMETERS_VISUAL_CHECK.png", "STEP")
-    try:
-        import matplotlib.pyplot as plt
-        fig, axes = plt.subplots(2, 5, figsize=(25, 10))
-        fig.suptitle(
-            f"LISFLOOD LULC Parameters  |  {info.crs}\n"
-            f"Grid: origin=({info.transform.c:.1f}, {info.transform.f:.1f})  "
-            f"{info.width}x{info.height} cells",
-            fontsize=12, fontweight="bold"
-        )
-
-        def panel(ax, data, title, cmap):
-            bg = np.zeros_like(mask, dtype=np.float32)
-            bg[mask == 0] = np.nan
-            ax.imshow(bg, cmap="Greys", vmin=-1, vmax=1, alpha=0.15, interpolation="nearest")
-
-            d = data.astype(np.float32).copy()
-            d[d <= -9000] = np.nan
-            # Find the actual value and add it to the title
-            val = np.nanmax(d)
-            if not np.isnan(val):
-                title = f"{title}\n[Value: {val:g}]"
-                im = ax.imshow(d, cmap=cmap, interpolation="nearest", vmin=0, vmax=val)
-            else:
-                im = ax.imshow(d, cmap=cmap, interpolation="nearest")
-            ax.set_title(title, fontsize=10, fontweight="bold")
-            ax.axis("off")
-
-        plot_items = [
-            ("cropcoef", "Crop Coefficient"),
-            ("crgrnum", "Groundwater Routing"),
-            ("mannings", "Manning's n"),
-            ("soildep1", "Soil Depth 1"),
-            ("soildep2", "Soil Depth 2")
-        ]
-        
-        for i, (prop, desc) in enumerate(plot_items):
-            panel(axes[0, i], maps[f'{prop}_forest'], f"{desc}\n(Forest)", "Greens")
-            panel(axes[1, i], maps[f'{prop}_other'], f"{desc}\n(Other)", "Oranges")
-
-        plt.tight_layout()
-        out = os.path.join(_cfg.BASE_DIR, "PARAMETERS_VISUAL_CHECK.png")
-        plt.savefig(out, dpi=150, bbox_inches="tight")
-        plt.close()
-        log(f"  * {out}")
-    except ImportError:
-        pass
 
 def main():
     print("\n" + "=" * 62)
@@ -175,7 +127,6 @@ def main():
     
     maps, tif_paths, info, mask = generate_parameters()
     validate_alignment(tif_paths, info)
-    visualize(maps, mask, info)
     
     print("\n  ★ DONE\n")
 

@@ -386,50 +386,6 @@ def convert_to_netcdf(tif_paths: dict, area_tif_path) -> dict:
             log(f"  {name}.tif  V   (.nc conversion failed)", "WARN")
     return nc_paths
 
-def visualize(ldd, gradient, elvstd, mask, info):
-    log("STEP 6 - Creating TOPO_VISUAL_CHECK.png", "STEP")
-    try:
-        import matplotlib.pyplot as plt
-        import matplotlib.colors as mcolors
-        
-        fig, axes = plt.subplots(1, 4, figsize=(20, 6))
-        fig.suptitle(
-            f"LISFLOOD Topography Maps (GEE Version) - {RESOLUTION_M}m  |  {info.crs}\n"
-            f"Grid: origin=({info.transform.c:.1f}, {info.transform.f:.1f})  "
-            f"{info.width}x{info.height} cells",
-            fontsize=10, fontweight="bold"
-        )
-
-        def panel(ax, data, title, cmap, label, nodata, vmin=None, vmax=None):
-            bg = np.zeros_like(mask, dtype=np.float32)
-            bg[mask == 0] = np.nan
-            ax.imshow(bg, cmap="Greys", vmin=-1, vmax=1, alpha=0.15, interpolation="nearest")
-
-            d = data.astype(np.float32).copy()
-            d[d <= nodata] = np.nan
-            
-            im_args = {'cmap': cmap, 'interpolation': 'nearest'}
-            if vmin is not None: im_args['vmin'] = vmin
-            if vmax is not None: im_args['vmax'] = vmax
-                
-            im = ax.imshow(d, **im_args)
-            plt.colorbar(im, ax=ax, label=label, shrink=0.85)
-            ax.set_title(title, fontsize=9, fontweight="bold")
-            ax.axis("off")
-
-        # Create continuous colormaps for physical properties
-        panel(axes[0], mask,     "area.tif\n(Master Mask)", "Blues", "0 or 1", nodata=-1)
-        panel(axes[1], ldd,      "ldd.nc\n(NetCDF)",   plt.cm.get_cmap('Set3', 9), "Flow Dir", -0.5, 1, 9)
-        panel(axes[2], gradient, "gradient.nc\n[m/m]",  "YlOrRd", "m/m", 0)
-        panel(axes[3], elvstd,   "elvstd.nc\n[m]",      "Purples", "m", 0)
-
-        plt.tight_layout()
-        out = os.path.join(_cfg.BASE_DIR, "TOPO_VISUAL_CHECK.png")
-        plt.savefig(out, dpi=150, bbox_inches="tight")
-        plt.close()
-        log(f"  * {out}")
-    except ImportError:
-        log("pip install matplotlib to enable visualization", "WARN")
 
 def validate_alignment(tif_paths: dict, info: GridInfo):
     log("STEP 7 - Validating alignment of all outputs", "STEP")
@@ -497,7 +453,6 @@ def main():
     val_paths['area'] = area_tif_path
     validate_alignment(val_paths, info)
     
-    visualize(ldd_masked, results['gradient'], results['elvstd'], mask_arr, info)
 
 if __name__ == "__main__":
     main()

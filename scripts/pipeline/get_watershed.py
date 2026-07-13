@@ -17,5 +17,5 @@ print(my_watershed.getInfo())
 
 # 5. Download it directly to your laptop as a Shapefile!
 print("Downloading...")
-geemap.ee_export_vector(my_watershed, filename="./ShapeFile/Watershed.shp")
+geemap.ee_export_vector(my_watershed, filename="./shapefiles/Watershed.shp")
 print("Done! You can now use this in your pipeline_config.py")

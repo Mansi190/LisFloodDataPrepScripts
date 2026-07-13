@@ -112,44 +112,6 @@ def validate_fractions(results, mask):
     else:
         log(f"  WARNING: {total_failed} out of {total_valid} pixels DO NOT sum to 1.0!", "WARN")
 
-def visualize(results, mask, info):
-    log("STEP 6 - Creating LULC_VISUAL_CHECK.png", "STEP")
-    try:
-        import matplotlib.pyplot as plt
-        fig, axes = plt.subplots(1, 5, figsize=(25, 5))
-        fig.suptitle(
-            f"LISFLOOD LULC Fractions (GEE Logic) - {RESOLUTION_M}m  |  {info.crs}\n"
-            f"Grid: origin=({info.transform.c:.1f}, {info.transform.f:.1f})  "
-            f"{info.width}x{info.height} cells",
-            fontsize=10, fontweight="bold"
-        )
-
-        def panel(ax, data, title, cmap, label, vmin=0, vmax=1):
-            bg = np.zeros_like(mask, dtype=np.float32)
-            bg[mask == 0] = np.nan
-            ax.imshow(bg, cmap="Greys", vmin=-1, vmax=1, alpha=0.15, interpolation="nearest")
-
-            d = data.astype(np.float32).copy()
-            d[d <= -9000] = np.nan
-                
-            im = ax.imshow(d, cmap=cmap, vmin=vmin, vmax=vmax, interpolation="nearest")
-            plt.colorbar(im, ax=ax, label=label, shrink=0.85)
-            ax.set_title(title, fontsize=9, fontweight="bold")
-            ax.axis("off")
-
-        panel(axes[0], results['lulc'], "lulc.map\n(Class)", "tab20", "Class", 0, 12)
-        panel(axes[1], results['fracsealed'], "fracsealed.map", "Reds", "Fraction")
-        panel(axes[2], results['fracwater'], "fracwater.map", "Blues", "Fraction")
-        panel(axes[3], results['fracforest'], "fracforest.map", "Greens", "Fraction")
-        panel(axes[4], results['fracother'], "fracother.map", "Oranges", "Fraction")
-
-        plt.tight_layout()
-        out = os.path.join(_cfg.BASE_DIR, "LULC_VISUAL_CHECK.png")
-        plt.savefig(out, dpi=150, bbox_inches="tight")
-        plt.close()
-        log(f"  * {out}")
-    except ImportError:
-        log("pip install matplotlib to enable visualization", "WARN")
 
 def compute_and_download_gee_lulc(info):
     log("STEP 2 - Computing LULC fractions in GEE...", "STEP")
@@ -290,7 +252,6 @@ def print_summary(tif_paths: dict, map_paths: dict, info: GridInfo):
         val = map_paths.get(key, f"W  run manual_convert.sh for {key}.nc")
         print(f"    {key} = {val}")
     print(f"\n  Output : {OUTPUT_DIR}/maps/")
-    print(f"  Check  : {OUTPUT_DIR}/LULC_VISUAL_CHECK.png")
     print("=" * 62 + "\n")
 
 def main():
@@ -311,7 +272,6 @@ def main():
     validate_alignment(tif_paths, info)
     validate_fractions(results, mask)
     
-    visualize(results, mask, info)
     print_summary(tif_paths, map_paths, info)
 
 if __name__ == "__main__":

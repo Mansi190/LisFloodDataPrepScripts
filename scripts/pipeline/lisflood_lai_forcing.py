@@ -293,45 +293,6 @@ def process_and_save(lai_bulk_tifs, obs_dates, info, mask):
     
     return ds_forest, ds_other
 
-def visualize(ds_forest, ds_other, info):
-    log("STEP 3 - Creating LAI_VISUAL_CHECK.png (Timeseries Graph)", "STEP")
-    try:
-        import matplotlib.pyplot as plt
-        
-        # Calculate the spatial mean for each time step, ignoring NODATA
-        # ds_forest['lai'] is (time, y, x). We want to mean over y and x.
-        lai_forest_masked = ds_forest['lai'].where(ds_forest['lai'] != NODATA_VAL)
-        lai_other_masked = ds_other['lai'].where(ds_other['lai'] != NODATA_VAL)
-        
-        # Calculate spatial mean over 'y' and 'x' dimensions
-        mean_forest = lai_forest_masked.mean(dim=['y', 'x'])
-        mean_other = lai_other_masked.mean(dim=['y', 'x'])
-        
-        # Extract times and values
-        times = pd.to_datetime(mean_forest.time.values)
-        vals_forest = mean_forest.values
-        vals_other = mean_other.values
-        
-        fig, ax = plt.subplots(figsize=(10, 5))
-        fig.suptitle(
-            f"Basin-Average LAI Timeseries (Forest vs Other)  |  {info.crs}",
-            fontsize=14, fontweight="bold"
-        )
-        
-        ax.plot(times, vals_forest, color='forestgreen', linewidth=4, marker='o', markersize=4, label="Forest LAI", alpha=0.7)
-        ax.plot(times, vals_other, color='darkorange', linewidth=2, linestyle='--', marker='s', markersize=3, label="Other LAI")
-        ax.set_ylabel("Leaf Area Index (LAI)", fontweight="bold")
-        ax.set_xlabel("Date", fontweight="bold")
-        ax.grid(True, linestyle='--', alpha=0.7)
-        ax.legend()
-        
-        plt.tight_layout()
-        out = os.path.join(_cfg.BASE_DIR, "LAI_VISUAL_CHECK.png")
-        plt.savefig(out, dpi=150, bbox_inches="tight")
-        plt.close()
-        log(f"  * {out}")
-    except ImportError:
-        pass
 
 def main():
     print("\n" + "=" * 65)
@@ -347,7 +308,6 @@ def main():
     
     ds_forest, ds_other = process_and_save(lai_bulk_tifs, obs_dates, info, mask)
     
-    visualize(ds_forest, ds_other, info)
     
     print("\n" + "=" * 65)
     print("  ★ DONE - LAI data perfectly aligned and stacked")

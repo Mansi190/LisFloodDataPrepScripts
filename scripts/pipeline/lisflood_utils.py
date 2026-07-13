@@ -30,9 +30,9 @@ def log(msg, kind="INFO"):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def make_dirs(output_dir):
-    """Create output_dir and its raw/ and maps/ subdirectories."""
-    for sub in ["", "/raw", "/maps"]:
-        Path(output_dir + sub).mkdir(parents=True, exist_ok=True)
+    """Create output_dir (parents included). Callers that need a raw/ or
+    maps/ subfolder create it explicitly by passing that exact path."""
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -74,7 +74,7 @@ EXPECTED_OUTPUTS = {
     "chan": _nc(cfg.DIR_MAPS,
                  "chan", "changrad", "chanman", "chanleng",
                  "chanbw", "chans", "chanbnkf"),
-    "outlets": ["reportingStations/outlets.nc"],
+    "outlets": [os.path.join(cfg.BASE_DIR, "reportingStations", "outlets.nc")],
     "meteo": _nc(cfg.DIR_METEO, "pr", "ta"),
     "lai": [os.path.join(cfg.DIR_LAI_FOREST, "lai_forest.nc"), os.path.join(cfg.DIR_LAI_OTHER, "lai_other.nc")],
     "lisvap_lat": _nc(cfg.DIR_MAPS, "lat"),
@@ -206,13 +206,13 @@ def generate_ini():
     lulc_c = cfg.DIR_TABLE2MAP
     soil   = cfg.DIR_SOILHYD
     chan   = cfg.DIR_MAPS
-    outlets = "reportingStations"
+    outlets = os.path.join(cfg.BASE_DIR, "reportingStations")
     meteo  = cfg.DIR_METEO
     lai_f  = cfg.DIR_LAI_FOREST
     lai_o  = cfg.DIR_LAI_OTHER
     crs   = cfg.TARGET_CRS or "Auto-detected"
 
-    ini_path = "./lisflood_settings.xml"
+    ini_path = os.path.join(cfg.REPO_ROOT, "settings", "lisflood_settings.xml")
 
     content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <!--

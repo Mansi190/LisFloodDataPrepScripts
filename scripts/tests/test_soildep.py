@@ -2,7 +2,7 @@ import xarray as xr
 import numpy as np
 import glob
 
-maps = glob.glob('output_dataset/maps/table2map/soildep*.nc')
+maps = glob.glob('inputs/maps/table2map/soildep*.nc')
 for m in maps:
     ds = xr.open_dataset(m)
     v = ds['Band1'].values

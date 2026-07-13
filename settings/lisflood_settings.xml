@@ -108,7 +108,7 @@
   <!-- ══════════════════════════════════════════════════════════════
        GAUGES AND MONITORING SITES
   ═══════════════════════════════════════════════════════════════ -->
-  <textvar name="Gauges"  value="reportingStations/outlets.nc"/>
+  <textvar name="Gauges"  value="inputs/reportingStations/outlets.nc"/>
 
   <!-- ══════════════════════════════════════════════════════════════
        METEOROLOGICAL FORCING (NetCDF stacks)

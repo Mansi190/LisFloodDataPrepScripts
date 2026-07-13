@@ -32,11 +32,16 @@ import os
 #  USER SETTINGS — only edit this block
 # =============================================================================
 
+# ── Repo root anchor ──────────────────────────────────────────────────────────
+# This config lives in scripts/pipeline/ ; the repo root is two levels up.
+# All paths below are anchored to it, so scripts work regardless of CWD.
+REPO_ROOT        = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 # ── ROI ───────────────────────────────────────────────────────────────────────
 # Path to your watershed boundary file.
 # Supported formats: .shp (with .shx/.dbf/.prj), .gpkg, .geojson
 # Any CRS is accepted — the pipeline reprojects automatically.
-ROI_SHAPEFILE    = "./ShapeFile/Watershed.shp"
+ROI_SHAPEFILE    = os.path.join(REPO_ROOT, "shapefiles", "Watershed.shp")
 
 # ── Spatial grid ──────────────────────────────────────────────────────────────
 RESOLUTION_M     = 300          # pixel size in metres
@@ -48,7 +53,9 @@ TARGET_CRS       = "EPSG:32643"
 
 
 # ── Output directories ────────────────────────────────────────────────────────
-BASE_DIR         = "./output_dataset"
+# BASE_DIR = the LISFLOOD *input* tree (what the pipeline generates).
+# LISFLOOD *run outputs* live separately under outputs/ (DIR_OUT).
+BASE_DIR         = os.path.join(REPO_ROOT, "inputs")
 DIR_MAPS         = os.path.join(BASE_DIR, "maps")
 DIR_FRACTION     = os.path.join(DIR_MAPS, "fraction")
 DIR_SOILHYD      = os.path.join(DIR_MAPS, "soilhyd")
@@ -58,7 +65,7 @@ DIR_METEO        = os.path.join(BASE_DIR, "meteo")
 DIR_LAI          = os.path.join(BASE_DIR, "lai")
 DIR_LAI_FOREST   = os.path.join(DIR_LAI, "forest")
 DIR_LAI_OTHER    = os.path.join(DIR_LAI, "other")
-DIR_OUT          = os.path.join(BASE_DIR, "out")
+DIR_OUT          = os.path.join(REPO_ROOT, "outputs", "cold")  # LISFLOOD cold-run output
 DIR_RAW          = os.path.join(BASE_DIR, "raw")
 
 # ── Gauges & sites ────────────────────────────────────────────────────────────

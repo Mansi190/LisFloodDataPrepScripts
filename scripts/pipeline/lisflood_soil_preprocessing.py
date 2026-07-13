@@ -271,42 +271,6 @@ def process_soil(info, area_mask, lulc_arr):
         
     return final_maps
 
-def visual_check(maps):
-    log("STEP 5 — Generating Visual Validation", "STEP")
-    try:
-        import matplotlib.pyplot as plt
-        
-        def panel(ax, data, title, cmap):
-            d = data.copy()
-            d[d <= -9000] = np.nan
-            im = ax.imshow(d, cmap=cmap)
-            plt.colorbar(im, ax=ax, shrink=0.8)
-            ax.set_title(title, fontsize=10, fontweight='bold')
-            ax.axis('off')
-
-        properties = [
-            ("thetas", "Theta Saturation (Volumetric)", "YlGnBu"),
-            ("thetar", "Theta Residual (Volumetric)", "YlGnBu"),
-            ("alpha", "Alpha (van Genuchten)", "viridis"),
-            ("lambda", "Lambda (Brooks-Corey)", "viridis"),
-            ("ksat", "Hydraulic Conductivity Ksat (mm/day)", "Spectral")
-        ]
-
-        for prop, desc, cmap in properties:
-            fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-            fig.suptitle(f"{desc}", fontsize=14, fontweight='bold')
-            
-            panel(axes[0], maps[f'{prop}1_forest'], f"Layer 1 - Forest", cmap)
-            panel(axes[1], maps[f'{prop}1_other'], f"Layer 1 - Other", cmap)
-            panel(axes[2], maps[f'{prop}2'], f"Layer 2", cmap)
-            
-            out = os.path.join(_cfg.BASE_DIR, f"soil_visual_check_{prop}.png")
-            plt.tight_layout()
-            plt.savefig(out, dpi=120)
-            plt.close()
-            log(f"  Visual saved -> {out}")
-    except ImportError:
-        pass
 
 # =============================================================================
 #  MAIN ENTRY POINT
@@ -343,7 +307,6 @@ def main():
     final_maps = process_soil(info, area_mask, lulc_arr)
     
     # 3. Validation
-    visual_check(final_maps)
     
     print("\n" + "═" * 65)
     print("  ★ DONE — All 15 LISFLOOD Soil maps generated successfully in ./lisflood_soil")

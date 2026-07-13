@@ -1,11 +1,13 @@
 import os
 import sys
 import numpy as np
-import matplotlib.pyplot as plt
 import xarray as xr
 from lisflood_utils import load_grid, save_aligned, gdal_convert_netcdf
 import pyproj
 import rasterio
+import pipeline_config as cfg
+
+REPORTING_DIR = os.path.join(cfg.BASE_DIR, "reportingStations")
 
 
 def align_station(row, col, facc, ldd, mask, max_radius=2):
@@ -30,22 +32,19 @@ def align_station(row, col, facc, ldd, mask, max_radius=2):
 
 def main():
     # Load canonical grid and masks
-    area_tif = "./lisflood_topography/maps/area.tif"
-    dem_tif = "./lisflood_topography/maps/dem_300m.tif"
-    ldd_tif = "./lisflood_topography/maps/ldd.tif"
-    facc_tif = "./lisflood_channels/raw/facc_snapped.tif"
+    area_tif = os.path.join(cfg.DIR_MAPS, "area.tif")
+    ldd_tif = os.path.join(cfg.DIR_MAPS, "ldd.tif")
+    facc_tif = os.path.join(cfg.DIR_RAW, "facc_snapped.tif")
     
     info, mask = load_grid(area_tif)
     
-    with rasterio.open(dem_tif) as src:
-        dem = src.read(1)
     with rasterio.open(ldd_tif) as src:
         ldd = src.read(1)
     with rasterio.open(facc_tif) as src:
         facc = src.read(1)
         
     # Read stations.csv
-    with open("stations.csv", "r") as f:
+    with open(os.path.join(REPORTING_DIR, "stations.csv"), "r") as f:
         line = f.read().strip()
     
     parts = line.split()
@@ -97,9 +96,9 @@ def main():
     outlets_arr = np.where(mask > 0, outlets_arr, 0)
     
     # Save to NetCDF
-    os.makedirs("reportingStations", exist_ok=True)
-    temp_tif = "reportingStations/outlets.tif"
-    out_nc = "reportingStations/outlets.nc"
+    os.makedirs(REPORTING_DIR, exist_ok=True)
+    temp_tif = os.path.join(REPORTING_DIR, "outlets.tif")
+    out_nc = os.path.join(REPORTING_DIR, "outlets.nc")
     
     save_aligned(outlets_arr, temp_tif, "uint8", 0, like=area_tif)
     gdal_convert_netcdf(temp_tif, out_nc)
@@ -107,59 +106,6 @@ def main():
     
     print(f"Successfully generated {out_nc}!")
     
-    # -------------------------------------------------------------
-    # VISUALIZATION
-    # -------------------------------------------------------------
-    print("Generating visualization...")
-    fig, axes = plt.subplots(1, 2, figsize=(20, 10))
-
-    # Pre-process arrays for plotting
-    dem_plot = dem.astype(np.float32).copy()
-    dem_plot[mask == 0] = np.nan
-    dem_plot[dem_plot == -9999] = np.nan
-
-    ldd_plot = ldd.astype(np.float32).copy()
-    ldd_plot[mask == 0] = np.nan
-    ldd_plot[ldd_plot == 255] = np.nan
-
-    # 1. DEM Subplot
-    ax = axes[0]
-    im1 = ax.imshow(dem_plot, cmap='terrain')
-    plt.colorbar(im1, ax=ax, label='Elevation (m)', shrink=0.7)
-    
-    if is_valid_raw:
-        ax.scatter(col_raw, row_raw, color='black', s=100, marker='x', label='Raw Coordinate')
-    if 0 <= row_snap < info.height and 0 <= col_snap < info.width:
-        ax.scatter(col_snap, row_snap, color='red', s=200, marker='*', edgecolor='black', zorder=5, label='Final Station')
-        if snapped:
-            ax.plot([col_raw, col_snap], [row_raw, row_snap], color='red', linestyle='--', alpha=0.7)
-            
-    ax.set_title("Outlet Mapping on DEM", fontsize=14, fontweight='bold')
-    ax.axis('off')
-    ax.legend(loc='lower right')
-
-    # 2. LDD Subplot
-    ax = axes[1]
-    cmap_ldd = plt.cm.get_cmap('Set3', 9)
-    im2 = ax.imshow(ldd_plot, cmap=cmap_ldd, vmin=0.5, vmax=9.5)
-    plt.colorbar(im2, ax=ax, label='Flow Direction (1-9)', shrink=0.7, ticks=range(1, 10))
-    
-    if is_valid_raw:
-        ax.scatter(col_raw, row_raw, color='black', s=100, marker='x', label='Raw Coordinate')
-    if 0 <= row_snap < info.height and 0 <= col_snap < info.width:
-        ax.scatter(col_snap, row_snap, color='red', s=200, marker='*', edgecolor='black', zorder=5, label='Final Station')
-        if snapped:
-            ax.plot([col_raw, col_snap], [row_raw, row_snap], color='red', linestyle='--', alpha=0.7)
-            ax.text(col_snap + 2, row_snap - 2, "Snapped", color='red', fontweight='bold', fontsize=12)
-            
-    ax.set_title("Outlet Mapping on LDD (Local Drain Direction)", fontsize=14, fontweight='bold')
-    ax.axis('off')
-    ax.legend(loc='lower right')
-
-    plt.tight_layout()
-    out_png = "reportingStations/OUTLET_VISUAL_CHECK.png"
-    plt.savefig(out_png, dpi=150, bbox_inches='tight')
-    print(f"Saved visualization to {out_png}")
 
 if __name__ == "__main__":
     main()
