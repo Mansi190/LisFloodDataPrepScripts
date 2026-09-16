@@ -1,0 +1,4 @@
+ObsID,StationName,GaugeID,EC_calib,CAL_TYPE,Spinup_days,Min_calib_days,LisfloodX,LisfloodY,DrainingArea
+1,FloodHub hybas_4121140140,hybas_4121140140,1,24,365,1095,,,753.9
+2,FloodHub hybas_4121142560,hybas_4121142560,1,24,365,1095,,,2244.9
+3,FloodHub hybas_4121593580,hybas_4121593580,1,24,365,1095,,,762.7

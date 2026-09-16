@@ -26,7 +26,7 @@ from pathlib import Path
 # =============================================================================
 
 import pipeline_config as _cfg
-from lisflood_utils import (log, make_dirs, gdal_convert_netcdf, init_ee,
+from lisflood_utils import (log, make_dirs, gdal_convert_netcdf, init_ee, ee_export_tiled,
                             load_grid, save_aligned, reproject_to_grid,
                             snap_to_grid)
 
@@ -77,17 +77,22 @@ def fetch_soilgrids_layer(info, var_name, depths, weights, out_tif):
 
     log(f"  Downloading {var_name} ({depths}) from SoilGrids GEE ...")
 
-    # 1. Build bounding box from the canonical grid
+    # 1. Build the request region in the SAME projected geometry path as the other
+    # steps (topo / lulc / channels): a rectangle in info.crs with a metre buffer.
+    # The previous version transformed two UTM corners into a lat/lon rectangle, which
+    # under-covers the envelope -- a UTM box is not a lat/lon box, so the N and S edges
+    # bow and the corners fall outside the requested rectangle.
     t = info.transform
     xmin, ymax = t.c, t.f
     xmax = xmin + t.a * info.width
     ymin = ymax + t.e * info.height
-    utm_to_wgs84 = pyproj.Transformer.from_crs(info.crs, "EPSG:4326", always_xy=True)
-    lon_min, lat_min = utm_to_wgs84.transform(xmin, ymin)
-    lon_max, lat_max = utm_to_wgs84.transform(xmax, ymax)
 
-    buf = 0.05
-    region = ee.Geometry.Rectangle([lon_min - buf, lat_min - buf, lon_max + buf, lat_max + buf])
+    buf = 2000  # metres, matching topographyMapsScript / lulc / channnels
+    region = ee.Geometry.Rectangle(
+        [xmin - buf, ymin - buf, xmax + buf, ymax + buf],
+        proj=str(info.crs),
+        geodesic=False
+    )
 
     # 2. Thickness-weighted mean across depth bands.
     # ee.Reducer.mean() gives equal weight regardless of layer thickness.
@@ -104,13 +109,7 @@ def fetch_soilgrids_layer(info, var_name, depths, weights, out_tif):
 
     # 3. Export
     log("    Downloading data (may take several seconds)...")
-    geemap.ee_export_image(
-        composite, filename=out_tif, scale=GEE_SCALE, crs="EPSG:4326",
-        region=region, file_per_band=False
-    )
-    if not os.path.exists(out_tif):
-        log(f"    ERROR: Earth Engine export failed for {out_tif}", "ERROR")
-        sys.exit(1)
+    ee_export_tiled(composite, out_tif, GEE_SCALE, info.crs, region)
 
     return out_tif
 

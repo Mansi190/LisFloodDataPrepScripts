@@ -27,7 +27,7 @@ You can use $(SettingsDir) or $(SettingsPath) to refer directory containing the 
                 **************************************************************
             </comment>
 
-            <textvar name="CalendarDayStart" value="01/01/2024 00:00">
+            <textvar name="CalendarDayStart" value="01/01/2003 00:00">
                 <comment>
                     Calendar day of 1st day in model run
                 </comment>
@@ -39,13 +39,13 @@ You can use $(SettingsDir) or $(SettingsPath) to refer directory containing the 
                 </comment>
             </textvar>
 
-            <textvar name="StepStart" value="01/01/2024 00:00">
+            <textvar name="StepStart" value="01/01/2003 00:00">
                 <comment>
                     Date of first time step in simulation
                 </comment>
             </textvar>
 
-            <textvar name="StepEnd" value="31/12/2024 00:00">
+            <textvar name="StepEnd" value="31/12/2020 00:00">
                 <comment>
                     Date of last time step
                 </comment>
@@ -66,21 +66,22 @@ You can use $(SettingsDir) or $(SettingsPath) to refer directory containing the 
                 **************************************************************
             </comment>
 
-            <textvar name="PathOut" value="$(SettingsPath)/../output_dataset/meteo/">
+            <textvar name="PathOut" value="/input/inputs/meteo">
                 <comment>
-                    Output path
+                    Output path: e0/es/et land next to the raw meteo, where the
+                    LISFLOOD settings read them from ($(PathRoot)/meteo).
                 </comment>
             </textvar>
 
-            <textvar name="PathBaseMapsIn" value="$(SettingsPath)/../output_dataset/maps/">
+            <textvar name="PathBaseMapsIn" value="/input/inputs/maps">
                 <comment>
-                    Path to input base maps
+                    Path to input base maps (area.nc, dem_300m.nc, lat.nc)
                 </comment>
             </textvar>
 
-            <textvar name="PathMeteoIn" value="$(SettingsPath)/../output_dataset/meteo/">
+            <textvar name="PathMeteoIn" value="/input/inputs/meteo">
                 <comment>
-                    Path to input raw meteo maps
+                    Path to input raw meteo maps (tx, tn, pd, ws, rg)
                 </comment>
             </textvar>
 
@@ -95,9 +96,10 @@ You can use $(SettingsDir) or $(SettingsPath) to refer directory containing the 
                 **************************************************************
             </comment>
 
-            <textvar name="PrefixE0" value="e">
+            <textvar name="PrefixE0" value="e0">
                 <comment>
-                    prefix E0 maps
+                    prefix E0 maps -- must match PrefixE0 in the LISFLOOD
+                    settings XMLs, which read $(PathMeteo)/e0.
                 </comment>
             </textvar>
 
@@ -470,7 +472,7 @@ You can use $(SettingsDir) or $(SettingsPath) to refer directory containing the 
                 </comment>
             </textvar>
 
-            <textvar name="TAvgMaps" value="$(PathMeteoIn)/ta/ta_1990_2017">
+            <textvar name="TAvgMaps" value="$(PathMeteoIn)/ta.nc">
                 <comment>
                     average daily temperature 
                     Units: [K] if "TemperatureInKelvinFlag" is on, else [C].

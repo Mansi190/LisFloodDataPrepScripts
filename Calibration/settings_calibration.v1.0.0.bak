@@ -1,0 +1,52 @@
+# lisflood-calibration (liscal v1.0.0) settings.
+# Key names come from liscal/config.py and bin/CAL_*.py, NOT from the repo README --
+# the README still documents the pre-1.0 Python-2.7 workflow, whose keys (Root, Qgis,
+# Qtss, CatchmentDataPath, MeteoData, PCRHOME, WarmupDays, MinQlength, ...) this code
+# no longer reads. The previous file is kept as settings_calibration.pre1.0.bak.
+# Reference template: ../../lisflood-calibration/integration/settings.txt
+# Dates are day-first: %d/%m/%Y %H:%M
+
+[Main]
+# Span of the meteo forcing in inputs/meteo (pipeline_config.FORCING_START/END).
+forcing_start = 01/01/2003 00:00
+forcing_end = 31/12/2019 00:00
+# minutes; liscal accepts only 360 (6-hourly) or 1440 (daily). Our runs are daily.
+timestep = 1440
+
+# LISFLOOD prerun that spins up the slow storages ahead of each calibration run.
+# Matches the split in settings/prerun.xml (2003-2015).
+prerun_start = 01/01/2003 00:00
+prerun_end = 31/12/2015 00:00
+prerun_timestep = 1440
+
+fast_debug = 0
+# was MinQlength=4 in the pre-1.0 file
+min_obs_years = 4
+
+[Stations]
+stations_data = /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/stations_data.csv
+stations_links = /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/stations_links.csv
+observed_discharges = /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/observed_discharges.csv
+return_periods = /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/return_levels.nc
+
+[Path]
+param_ranges = /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/param_ranges.csv
+subcatchment_path = /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments
+summary_path = /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/summary
+# read by CAL_5_PREP_FORCING.py
+Temp = /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/temp
+# read by CAL_7_PERFORM_CAL.py (the qsub launcher)
+PYTHONCMD = /opt/homebrew/Caskroom/miniconda/base/envs/lisflood-pcraster/bin/python
+
+[Templates]
+LISFLOODSettings = /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/templates/settings_lisflood.xml
+
+[DEAP]
+numCPUs = 10
+min_gen = 6
+max_gen = 16
+mu = 18
+lambda_ = 36
+pop = 72
+gen_offset = 3
+effmax_tol = 0.003

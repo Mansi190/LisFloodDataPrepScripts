@@ -1,0 +1,122 @@
+Settings:
+- Main
+  - forcing_start: 01/01/2003 00:00
+  - forcing_end: 31/12/2020 00:00
+  - timestep: 1440
+  - prerun_start: 01/01/2003 00:00
+  - prerun_end: 31/12/2008 00:00
+  - prerun_timestep: 1440
+  - fast_debug: 0
+  - min_obs_years: 4
+- Stations
+  - stations_data: /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/stations_data.csv
+  - stations_links: /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/stations_links.csv
+  - observed_discharges: /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/observed_discharges.csv
+- Path
+  - param_ranges: /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/param_ranges.csv
+  - subcatchment_path: /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments
+  - summary_path: /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/summary
+  - gauges_path: /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/gauges.map
+  - interstation_regions: /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/interstation_regions.map
+  - inlets: /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/inlets.map
+  - temp: /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/temp
+  - pythoncmd: /opt/homebrew/Caskroom/miniconda/base/envs/lisflood/bin/python
+- Templates
+  - lisfloodsettings: /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/templates/settings_lisflood.xml
+- DEAP
+  - numcpus: 6
+  - min_gen: 6
+  - max_gen: 16
+  - mu: 18
+  - lambda_: 36
+  - pop: 72
+  - gen_offset: 3
+  - effmax_tol: 0.003
+>> Reading stations_data file /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/station/station_data.csv
+Station data:
+---------------------------------------
+StationName             FloodHub hybas_4120998630
+GaugeID                          hybas_4120998630
+EC_calib                                        1
+CAL_TYPE                                       24
+Spinup_days                                   365
+Min_calib_days                               1095
+LisfloodX                                242850.0
+LisfloodY                               2473350.0
+DrainingArea                               4745.4
+DrainingArea.km2.LDD                      4828.86
+Obs_start                        01/01/2004 00:00
+Obs_end                          31/12/2020 00:00
+Split_date                       02/07/2012 00:00
+N_data                                       6210
+Name: 1, dtype: object
+---------------------------------------
+Gauge location 242850.0 2473350.0
+Upstream station(s): 
+No upstream inflow needed
+
+Found 0 inflows
+=================== 1 ====================
+>> Running LISFLOOD using the "best" parameter set
+param_00_UpperZoneTimeConstant 39.8655
+param_01_LowerZoneTimeConstant 1301.29
+param_02_GwPercValue 2
+param_03_LZThreshold 22.7819
+param_04_b_Xinanjiang 0.573674
+param_05_PowerPrefFlow 0.5
+param_06_CalChanMan1 0.844072
+param_07_CalChanMan2 3.01582
+param_08_adjust_Normal_Flood 0.01
+param_09_QSplitMult 15.0334
+param_10_GwLoss 0
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+/opt/homebrew/Caskroom/miniconda/base/envs/lisflood/lib/python3.10/site-packages/lisflood/hydrological_modules/routing.py:232: RuntimeWarning: invalid value encountered in power
+  AlpTermChan = (self.var.ChanMan / (np.sqrt(self.var.ChanGrad))) ** self.var.Beta
+/opt/homebrew/Caskroom/miniconda/base/envs/lisflood/lib/python3.10/site-packages/lisflood/hydrological_modules/routing.py:235: RuntimeWarning: invalid value encountered in power
+  self.var.ChannelAlpha = (AlpTermChan * (self.var.ChanWettedPerimeterAlpha ** self.var.AlpPow)).astype(float)
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+
+
+ ========================== LISFLOOD Simulation Information and Setting =============================
+	[X] LISFLOOD is used in the Deterministic
+	[X] The simulation output as specified in the settings file can be found in /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/out/long_term_run
+	[X] Activated modules: nonInit
+	[X] Report options: repDischargeTs,repMeteoUpsGauges,repStateUpsGauges,reportedmaps
+
+
+Start Step - End Step:  1  -  6575
+Start Date - End Date:  2003-01-01 00:00:00  -  2020-12-31 00:00:00
+...............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+Traceback (most recent call last):
+  File "/Users/mansi/Documents/LisFlood/lisflood-calibration/bin/CAL_7_LONGTERM_RUN.py", line 48, in <module>
+    longtermrun_subcatchment(cfg, obsid, subcatch)
+  File "/Users/mansi/Documents/LisFlood/lisflood-calibration/bin/CAL_7_LONGTERM_RUN.py", line 27, in longtermrun_subcatchment
+    hydro_model.generate_outlet_streamflow(cfg, subcatch, lis_template)
+  File "/Users/mansi/Documents/LisFlood/lisflood-calibration/liscal/hydro_model.py", line 302, in generate_outlet_streamflow
+    simulated_best_tss2csv(cfg, subcatch, run_id, cfg.forcing_start, 'chanq', 'chanq')
+  File "/Users/mansi/Documents/LisFlood/lisflood-calibration/liscal/hydro_model.py", line 214, in simulated_best_tss2csv
+    tss = utils.read_tss(tss_file)
+  File "/Users/mansi/Documents/LisFlood/lisflood-calibration/liscal/utils.py", line 6, in read_tss
+    df = pd.read_csv(tss_file, sep=r"\s+", index_col=0, skiprows=skiprows, header=None, skipinitialspace=True)
+  File "/opt/homebrew/Caskroom/miniconda/base/envs/lisflood/lib/python3.10/site-packages/pandas/util/_decorators.py", line 211, in wrapper
+    return func(*args, **kwargs)
+  File "/opt/homebrew/Caskroom/miniconda/base/envs/lisflood/lib/python3.10/site-packages/pandas/util/_decorators.py", line 331, in wrapper
+    return func(*args, **kwargs)
+  File "/opt/homebrew/Caskroom/miniconda/base/envs/lisflood/lib/python3.10/site-packages/pandas/io/parsers/readers.py", line 950, in read_csv
+    return _read(filepath_or_buffer, kwds)
+  File "/opt/homebrew/Caskroom/miniconda/base/envs/lisflood/lib/python3.10/site-packages/pandas/io/parsers/readers.py", line 605, in _read
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+  File "/opt/homebrew/Caskroom/miniconda/base/envs/lisflood/lib/python3.10/site-packages/pandas/io/parsers/readers.py", line 1442, in __init__
+    self._engine = self._make_engine(f, self.engine)
+  File "/opt/homebrew/Caskroom/miniconda/base/envs/lisflood/lib/python3.10/site-packages/pandas/io/parsers/readers.py", line 1735, in _make_engine
+    self.handles = get_handle(
+  File "/opt/homebrew/Caskroom/miniconda/base/envs/lisflood/lib/python3.10/site-packages/pandas/io/common.py", line 856, in get_handle
+    handle = open(
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/out/long_term_run/chanq.tss'
+

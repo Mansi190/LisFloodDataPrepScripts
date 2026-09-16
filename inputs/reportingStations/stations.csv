@@ -1,2 +1,8 @@
-74.60222 16.68444 1
-
+# lon lat id [up_area_km2]  -- LISFLOOD reporting stations
+# The 3 FloodHub high-confidence non-CWC gauges inside hydrobasins_roi_lev6_4060028560.
+# All source=HYBAS (virtual model nodes, not measurement stations). 4th column = true
+# upstream area from HydroBASINS level 12 (the gauge id IS the HYBAS_ID), used to snap
+# onto the model's own channel. Station 1 drains into station 2 (nested); 3 is a separate river.
+79.443750 12.247917 1 753.9   # hybas_4121140140
+79.710417 11.939583 2 2244.9   # hybas_4121142560
+79.902083 12.252083 3 762.7   # hybas_4121593580

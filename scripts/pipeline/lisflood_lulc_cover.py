@@ -48,10 +48,16 @@ def generate_parameters():
         "crgrnum_other":   mask_surface(1, domain, np.int16),
         "mannings_forest": mask_surface(0.3, domain),
         "mannings_other":  mask_surface(0.1, domain),
-        "soildep1_forest": mask_surface(1500, domain),
-        "soildep1_other":  mask_surface(600, domain),
-        "soildep2_forest": mask_surface(1000, domain),
-        "soildep2_other":  mask_surface(1400, domain),
+        # Soil-storage depths come from the single source of truth in
+        # pipeline_config (SOIL_DEPTH_L1_MM / L2_MM), which are derived from the
+        # SoilGrids band thicknesses the hydraulic properties were averaged over.
+        # Keeping them here in sync guarantees w_s = ThetaSat * depth uses the
+        # same depth the properties were computed for. Forest and other share the
+        # same depth because there is only one property-averaging depth structure.
+        "soildep1_forest": mask_surface(_cfg.SOIL_DEPTH_L1_MM, domain),
+        "soildep1_other":  mask_surface(_cfg.SOIL_DEPTH_L1_MM, domain),
+        "soildep2_forest": mask_surface(_cfg.SOIL_DEPTH_L2_MM, domain),
+        "soildep2_other":  mask_surface(_cfg.SOIL_DEPTH_L2_MM, domain),
     }
 
     maps_dir = OUTPUT_DIR

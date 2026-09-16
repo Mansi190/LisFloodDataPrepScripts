@@ -42,8 +42,9 @@
         # option to compute indicators
         <setoption choice="0" name="indicator"/>
 
-        # option to initialize Lisflood
+        # WARM START run: resumes from the cold start's end maps
         <setoption choice="0" name="InitLisflood"/>
+        <setoption choice="0" name="InitLisfloodwithoutsplit"/>
 
         # option to read/write NetCDF
         <setoption choice="1" name="readNetcdfStack"/>
@@ -59,7 +60,7 @@
         # report gauges and sites
         <setoption choice="0" name="repStateSites"/>
         <setoption choice="0" name="repRateSites"/>
-        <setoption choice="0" name="repStateUpsGauges"/>
+        <setoption choice="1" name="repStateUpsGauges"/>
         <setoption choice="0" name="repRateUpsGauges"/>
         <setoption choice="1" name="repMeteoUpsGauges"/>
 
@@ -323,7 +324,7 @@
                 </comment>
             </textvar>
 
-            <textvar name="CalendarDayStart" value="01/01/2024 00:00">
+            <textvar name="CalendarDayStart" value="01/01/2019 00:00">
                 <comment>
                     Calendar day number of 1st day in model run
                     Day of the year of first map (e.g. xx000.001) even if the model start from map e.g. 500
@@ -349,15 +350,21 @@
                 </comment>
             </textvar>
 
-            <textvar name="StepStart" value="01/12/2024 00:00">
+            <textvar name="StepStart" value="01/01/2019 00:00">
                 <comment>
                     Number of first time step in simulation
                 </comment>
             </textvar>
 
-            <textvar name="StepEnd" value="31/12/2024 00:00">
+            <textvar name="StepEnd" value="31/12/2019 00:00">
                 <comment>
                     Number of last time step in simulation
+                </comment>
+            </textvar>
+
+            <textvar name="NumDaysSpinUp" value="0">
+                <comment>
+                    0 for cold start and warm start runs (prerun only: >= 1095)
                 </comment>
             </textvar>
 
@@ -572,7 +579,7 @@
                 **************************************************************
             </comment>
 
-            <textvar name="timestepInit" value="01/12/2024 00:00">
+            <textvar name="timestepInit" value="31/12/2018 00:00">
                 <comment>
                     if init. condition are stored as netCDF with different time steps
                     this variable indicates which time step to use
@@ -628,7 +635,7 @@
                 </comment>
             </textvar>
 
-            <textvar name="UZInitValue" value="0">
+            <textvar name="UZInitValue" value="$(PathInit)/uz.end.nc">
                 <comment>
                     water in upper store [mm]
                 </comment>
@@ -651,7 +658,7 @@
                 **************************************************************
             </comment>
 
-            <textvar name="LZInitValue" value="0">
+            <textvar name="LZInitValue" value="$(PathInit)/lz.end.nc">
                 <comment>
                     water in lower store [mm]
                     -9999: use steady-state storage
@@ -665,21 +672,21 @@
                 </comment>
             </textvar>
 
-            <textvar name="ThetaInit1Value" value="-9999">
+            <textvar name="ThetaInit1Value" value="$(PathInit)/tha.end.nc">
                 <comment>
                     initial soil moisture content layer 1
                     -9999: use field capacity values
                 </comment>
             </textvar>
 
-            <textvar name="ThetaInit2Value" value="-9999">
+            <textvar name="ThetaInit2Value" value="$(PathInit)/thb.end.nc">
                 <comment>
                     initial soil moisture content layer 2
                     -9999: use field capacity values
                 </comment>
             </textvar>
 
-            <textvar name="ThetaInit3Value" value="-9999">
+            <textvar name="ThetaInit3Value" value="$(PathInit)/thc.end.nc">
                 <comment>
                     initial soil moisture content layer 2
                     -9999: use field capacity values
@@ -747,7 +754,7 @@
                 </comment>
             </textvar>
 
-            <textvar name="UZForestInitValue" value="0">
+            <textvar name="UZForestInitValue" value="$(PathInit)/uzf.end.nc">
                 <comment>
                     water in upper store [mm]
                 </comment>
@@ -759,21 +766,21 @@
                 </comment>
             </textvar>
 
-            <textvar name="ThetaForestInit1Value" value="-9999">
+            <textvar name="ThetaForestInit1Value" value="$(PathInit)/thfa.end.nc">
                 <comment>
                     initial soil moisture content layer 1
                     -9999: use field capacity values
                 </comment>
             </textvar>
 
-            <textvar name="ThetaForestInit2Value" value="-9999">
+            <textvar name="ThetaForestInit2Value" value="$(PathInit)/thfb.end.nc">
                 <comment>
                     initial soil moisture content layer 2
                     -9999: use field capacity values
                 </comment>
             </textvar>
 
-            <textvar name="ThetaForestInit3Value" value="-9999">
+            <textvar name="ThetaForestInit3Value" value="$(PathInit)/thfc.end.nc">
                 <comment>
                     initial soil moisture content layer 2
                     -9999: use field capacity values
@@ -797,7 +804,7 @@
                 </comment>
             </textvar>
 
-            <textvar name="UZIrrigationInitValue" value="0">
+            <textvar name="UZIrrigationInitValue" value="$(PathInit)/uzi.end.nc">
                 <comment>
                     water in upper store [mm]
                 </comment>
@@ -809,21 +816,21 @@
                 </comment>
             </textvar>
 
-            <textvar name="ThetaIrrigationInit1Value" value="-9999">
+            <textvar name="ThetaIrrigationInit1Value" value="$(PathInit)/thia.end.nc">
                 <comment>
                     initial soil moisture content layer 1
                     -9999: use field capacity values
                 </comment>
             </textvar>
 
-            <textvar name="ThetaIrrigationInit2Value" value="-9999">
+            <textvar name="ThetaIrrigationInit2Value" value="$(PathInit)/thib.end.nc">
                 <comment>
                     initial soil moisture content layer 2
                     -9999: use field capacity values
                 </comment>
             </textvar>
 
-            <textvar name="ThetaIrrigationInit3Value" value="-9999">
+            <textvar name="ThetaIrrigationInit3Value" value="$(PathInit)/thic.end.nc">
                 <comment>
                     initial soil moisture content layer 2
                     -9999: use field capacity values
@@ -1626,7 +1633,7 @@ LFBINDING: MORE LOW-LEVEL CONTROL OVER MODEL IN- AND OUTPUT
                 </comment>
             </textvar>
 
-            <textvar name="CalendarDayStart" value="01/01/2024 00:00">
+            <textvar name="CalendarDayStart" value="01/01/2019 00:00">
                 <comment>
                     Calendar day is back!
                     Calendar day number of 1st day in model run
@@ -1648,15 +1655,21 @@ LFBINDING: MORE LOW-LEVEL CONTROL OVER MODEL IN- AND OUTPUT
                 </comment>
             </textvar>
 
-            <textvar name="StepStart" value="01/12/2024 00:00">
+            <textvar name="StepStart" value="01/01/2019 00:00">
                 <comment>
                     Number of first time step in simulation
                 </comment>
             </textvar>
 
-            <textvar name="StepEnd" value="31/12/2024 00:00">
+            <textvar name="StepEnd" value="31/12/2019 00:00">
                 <comment>
                     Number of last time step in simulation
+                </comment>
+            </textvar>
+
+            <textvar name="NumDaysSpinUp" value="$(NumDaysSpinUp)">
+                <comment>
+                    Days discarded from the average-flux computation (prerun only)
                 </comment>
             </textvar>
 
@@ -2087,7 +2100,7 @@ LFBINDING: MORE LOW-LEVEL CONTROL OVER MODEL IN- AND OUTPUT
                 **************************************************************
             </comment>
 
-            <textvar name="LZAvInflowMap" value="0">
+            <textvar name="LZAvInflowMap" value="/input/outputs/prerun/lzavin">
                 <comment>
                     $(PathRoot)/maps/lzavin.map
                     $(PathInit)/lzavin.map
@@ -2096,7 +2109,7 @@ LFBINDING: MORE LOW-LEVEL CONTROL OVER MODEL IN- AND OUTPUT
                 </comment>
             </textvar>
 
-            <textvar name="AvgDis" value="0">
+            <textvar name="AvgDis" value="/input/outputs/prerun/avgdis">
                 <comment>
                     $(PathRoot)/maps/avgdis.map
                     $(PathInit)/avgdis.map
@@ -2105,7 +2118,7 @@ LFBINDING: MORE LOW-LEVEL CONTROL OVER MODEL IN- AND OUTPUT
                 </comment>
             </textvar>
 
-            <textvar name="timestepInit" value="01/12/2024 00:00">
+            <textvar name="timestepInit" value="31/12/2018 00:00">
                 <comment>
                     if init condition are stored as netCDF with different time steps
                     this variable indicates which time step to use

@@ -33,18 +33,17 @@ def _run(cmd, name):
         sys.exit(1)
 
 def reproject_shapefile(shp_path):
-    if not _cfg.TARGET_CRS:
-        return shp_path
-        
     import geopandas as gpd
+    target = _cfg.resolve_crs()          # honours TARGET_CRS, else UTM from centroid
     gdf = gpd.read_file(shp_path)
-    
-    if gdf.crs and gdf.crs.to_string() == _cfg.TARGET_CRS:
+
+    if gdf.crs and gdf.crs.to_string() == target:
         return shp_path
-        
-    log(f"Reprojecting shapefile to {_cfg.TARGET_CRS}...")
+
+    log(f"Reprojecting shapefile to {target}...")
     out_shp = os.path.join(_cfg.DIR_RAW, "watershed_projected.shp")
-    gdf.to_crs(_cfg.TARGET_CRS).to_file(out_shp)
+    make_dirs(_cfg.DIR_RAW)
+    gdf.to_crs(target).to_file(out_shp)
     return out_shp
 
 def rasterize_watershed(shp_path):
@@ -123,15 +122,46 @@ def compute_and_download_gee_topo(info):
     
     raw_tif = os.path.join(raw_dir, "topo_raw_gee_30m.tif")
     if not os.path.exists(raw_tif):
-        log(f"Downloading GEE topo data to {raw_tif}...")
-        geemap.ee_export_image(
-            combined,
-            filename=raw_tif,
-            scale=30.0,
-            crs=str(info.crs),
-            region=region,
-            file_per_band=False
-        )
+        # getDownloadURL caps one request at ~32-50 MB. A single-shot export works on a
+        # small basin but silently fails on a large one (this ROI: 6549x8780 px = 230 MB),
+        # leaving no file behind. Tile the region so every request stays under the cap,
+        # then mosaic the tiles back into the one raster the rest of the step expects.
+        x0, y0, x1, y1 = xmin - buf, ymin - buf, xmax + buf, ymax + buf
+        total_mb = ((x1 - x0) / 30.0) * ((y1 - y0) / 30.0) * 4 / 1e6
+        n = max(1, math.ceil(math.sqrt(total_mb / 25.0)))   # ~25 MB per tile
+        log(f"Downloading GEE topo data ({total_mb:.0f} MB) as {n}x{n} tiles...")
+
+        dx, dy = (x1 - x0) / n, (y1 - y0) / n
+        tiles = []
+        for i in range(n):
+            for j in range(n):
+                tile_tif = os.path.join(raw_dir, f"topo_raw_gee_30m_t{i}{j}.tif")
+                if not os.path.exists(tile_tif):
+                    sub = ee.Geometry.Rectangle(
+                        [x0 + i * dx, y0 + j * dy, x0 + (i + 1) * dx, y0 + (j + 1) * dy],
+                        proj=str(info.crs), geodesic=False)
+                    geemap.ee_export_image(combined, filename=tile_tif, scale=30.0,
+                                           crs=str(info.crs), region=sub,
+                                           file_per_band=False)
+                if not os.path.exists(tile_tif):
+                    log(f"Tile {i},{j} failed to download", "ERROR")
+                    sys.exit(1)
+                tiles.append(tile_tif)
+                log(f"  tile {len(tiles)}/{n*n}")
+
+        from rasterio.merge import merge as rio_merge
+        srcs = [rasterio.open(t) for t in tiles]
+        mosaic, out_transform = rio_merge(srcs)
+        prof = srcs[0].profile
+        prof.update(height=mosaic.shape[1], width=mosaic.shape[2],
+                    transform=out_transform, count=mosaic.shape[0])
+        with rasterio.open(raw_tif, "w", **prof) as dst:
+            dst.write(mosaic)
+        for src in srcs:
+            src.close()
+        for t in tiles:
+            os.remove(t)
+        log(f"Mosaicked {len(tiles)} tiles -> {raw_tif} ({mosaic.shape[2]}x{mosaic.shape[1]})")
     else:
         log(f"Raw GEE data already exists: {raw_tif}")
         

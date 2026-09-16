@@ -11,7 +11,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 import pipeline_config as _cfg
-from lisflood_utils import (GridInfo, log, check_imports, make_dirs,
+from lisflood_utils import (GridInfo, log, check_imports, make_dirs, ee_export_tiled,
                             gdal_convert_netcdf, load_grid, save_aligned, reproject_to_grid,
                             init_ee)
 
@@ -179,14 +179,7 @@ def compute_and_download_gee_lulc(info):
     raw_tif = os.path.join(raw_dir, "lulc_raw_gee.tif")
     if not os.path.exists(raw_tif):
         log(f"Downloading GEE LULC data to {raw_tif}...")
-        geemap.ee_export_image(
-            combined,
-            filename=raw_tif,
-            scale=_cfg.RESOLUTION_M,
-            crs=str(info.crs),
-            region=region,
-            file_per_band=False
-        )
+        ee_export_tiled(combined, raw_tif, _cfg.RESOLUTION_M, info.crs, region)
     else:
         log(f"Raw GEE data already exists: {raw_tif}")
         

@@ -8,12 +8,18 @@ from lisflood_utils import log
 
 def main():
     log("STEP 3 - Running LISVAP via Docker", "STEP")
-    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # Mount the REPO ROOT, not this script's parent, so the container sees the same
+    # /input tree as the LISFLOOD runs (/input/inputs/maps, /input/inputs/meteo).
+    # Deriving the mount from __file__ is what broke at the 2026-07 reorg: moving
+    # LisVap/ down to scripts/pipeline/ silently repointed it at scripts/pipeline.
+    settings = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "settings_lisvap.xml")
+    settings_in_container = "/input/" + os.path.relpath(settings, _cfg.REPO_ROOT)
     cmd = [
-        "docker", "run", "--rm", 
-        "-v", f"{parent_dir}:/input", 
-        "jrce1/lisvap", 
-        "/input/LisVap/settings_lisvap.xml"
+        "docker", "run", "--rm",
+        "-v", f"{_cfg.REPO_ROOT}:/input",
+        "jrce1/lisvap",
+        settings_in_container,
     ]
     log(f"Running: {' '.join(cmd)}")
     

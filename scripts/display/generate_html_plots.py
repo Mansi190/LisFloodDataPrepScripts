@@ -104,6 +104,11 @@ INPUT_DIRS = [os.path.join(REPO_ROOT, "inputs", d) for d in (
     "maps/safe_init", "meteo", "lai/forest", "lai/other",
 )]
 
+# Input .nc files to leave out of the page entirely. dem_30m is the raw 30 m DEM
+# the 300 m grid was resampled from -- it is a source artefact, not a model input,
+# and its panel duplicates dem_300m.
+SKIP_INPUT_STEMS = {"dem_30m"}
+
 RUN_COLORS = {"cold": "#3b82f6", "warm": "#f59e0b"}
 
 # stem -> (title, units, colormap)
@@ -577,6 +582,8 @@ def generate(force=False):
             if not (fname.endswith(".nc") and os.path.isfile(src)):
                 continue
             stem = fname[:-3]
+            if stem in SKIP_INPUT_STEMS:
+                continue
             rel = _rel("inputs", input_category(in_dir, stem), f"sa_{stem}.png")
             expected.add(rel)
             out_png = target(rel)

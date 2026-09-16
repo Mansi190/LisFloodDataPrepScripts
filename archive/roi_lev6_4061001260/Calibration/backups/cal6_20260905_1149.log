@@ -1,0 +1,964 @@
+Running calibration using 5 cpus
+Settings:
+- Main
+  - forcing_start: 01/01/2003 00:00
+  - forcing_end: 31/12/2020 00:00
+  - timestep: 1440
+  - prerun_start: 01/01/2003 00:00
+  - prerun_end: 31/12/2008 00:00
+  - prerun_timestep: 1440
+  - fast_debug: 0
+  - min_obs_years: 4
+- Stations
+  - stations_data: /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/stations_data.csv
+  - stations_links: /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/stations_links.csv
+  - observed_discharges: /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/observed_discharges.csv
+- Path
+  - param_ranges: /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/param_ranges.csv
+  - subcatchment_path: /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments
+  - summary_path: /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/summary
+  - gauges_path: /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/gauges.map
+  - interstation_regions: /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/interstation_regions.map
+  - inlets: /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/inlets.map
+  - temp: /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/temp
+  - pythoncmd: /opt/homebrew/Caskroom/miniconda/base/envs/lisflood/bin/python
+- Templates
+  - lisfloodsettings: /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/templates/settings_lisflood.xml
+- DEAP
+  - numcpus: 5
+  - min_gen: 6
+  - max_gen: 16
+  - mu: 18
+  - lambda_: 36
+  - pop: 72
+  - gen_offset: 3
+  - effmax_tol: 0.003
+>> Reading stations_data file /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/station/station_data.csv
+Station data:
+---------------------------------------
+StationName             FloodHub hybas_4120998630
+GaugeID                          hybas_4120998630
+EC_calib                                        1
+CAL_TYPE                                       24
+Spinup_days                                   365
+Min_calib_days                               1095
+LisfloodX                                242850.0
+LisfloodY                               2473350.0
+DrainingArea                               4745.4
+DrainingArea.km2.LDD                      4828.86
+Obs_start                        01/01/2004 00:00
+Obs_end                          31/12/2020 00:00
+Split_date                       02/07/2012 00:00
+N_data                                       6210
+Name: 1, dtype: object
+---------------------------------------
+Gauge location 242850.0 2473350.0
+Upstream station(s): 
+No upstream inflow needed
+
+Found 0 inflows
+=================== 1 ====================
+>> Starting calibration of catchment 1
+Observations:
+---------------------------------------
+Timestamp
+01/01/2004 00:00    76.020
+02/01/2004 00:00    75.528
+03/01/2004 00:00    75.073
+04/01/2004 00:00    74.575
+05/01/2004 00:00    74.187
+                     ...  
+27/12/2020 00:00    65.698
+28/12/2020 00:00    65.707
+29/12/2020 00:00    65.908
+30/12/2020 00:00    66.248
+31/12/2020 00:00    66.162
+Name: 1, Length: 6210, dtype: float64
+---------------------------------------
+01/01/2004 00:00 31/12/2020 00:00
+---------------------------------------------------------
+Intialising prerun: caching static maps and forcings
+---------------------------------------------------------
+Cache size before initialisation: 0
+LisfloodPy  4.3.1   23/01/2024
+
+Water balance and flood simulation model for large catchments
+
+(C) Institute for Environment and Sustainability
+    Joint Research Centre of the European Commission
+    TP122, I-21020 Ispra (Va), Italy
+
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+/opt/homebrew/Caskroom/miniconda/base/envs/lisflood/lib/python3.10/site-packages/lisflood/hydrological_modules/routing.py:232: RuntimeWarning: invalid value encountered in power
+  AlpTermChan = (self.var.ChanMan / (np.sqrt(self.var.ChanGrad))) ** self.var.Beta
+/opt/homebrew/Caskroom/miniconda/base/envs/lisflood/lib/python3.10/site-packages/lisflood/hydrological_modules/routing.py:235: RuntimeWarning: invalid value encountered in power
+  self.var.ChannelAlpha = (AlpTermChan * (self.var.ChanWettedPerimeterAlpha ** self.var.AlpPow)).astype(float)
+
+
+ ========================== LISFLOOD Simulation Information and Setting =============================
+	[X] LISFLOOD is used in the Deterministic
+	[X] INITIALISATION RUN
+	[X] The simulation output as specified in the settings file can be found in /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/out/0
+	[X] Activated modules: InitLisflood
+	[X] Report options: repDischargeTs,repEndMaps,repMeteoUpsGauges,repStateUpsGauges,reportedmaps
+
+
+Start Step - End Step:  1  -  2192
+Start Date - End Date:  2003-01-01 00:00:00  -  2008-12-31 00:00:00
+initonly flag activated... Stopping now before entering time loop.
+Cache size after initialising prerun: 0
+---------------------------------------------------------
+Intialising run: caching static maps and forcings
+---------------------------------------------------------
+LisfloodPy  4.3.1   23/01/2024
+
+Water balance and flood simulation model for large catchments
+
+(C) Institute for Environment and Sustainability
+    Joint Research Centre of the European Commission
+    TP122, I-21020 Ispra (Va), Italy
+
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+
+
+ ========================== LISFLOOD Simulation Information and Setting =============================
+	[X] LISFLOOD is used in the Deterministic
+	[X] INITIALISATION RUN
+	[X] The simulation output as specified in the settings file can be found in /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/out/0
+	[X] Activated modules: InitLisflood
+	[X] Report options: repDischargeTs,repMeteoUpsGauges,repStateUpsGauges,reportedmaps
+
+
+Start Step - End Step:  3106  -  6575
+Start Date - End Date:  2011-07-03 00:00:00  -  2020-12-31 00:00:00
+initonly flag activated... Stopping now before entering time loop.
+Cache size after initialising run: 0
+---------------------------------------------------------
+End of the Initialisaton
+---------------------------------------------------------
+Creating calibration object
+Using default deap seed
+Starting calibration
+Generating first population
+/opt/homebrew/Caskroom/miniconda/base/envs/lisflood/lib/python3.10/site-packages/lisflood/hydrological_modules/routing.py:232: RuntimeWarning: invalid value encountered in power
+  AlpTermChan = (self.var.ChanMan / (np.sqrt(self.var.ChanGrad))) ** self.var.Beta
+/opt/homebrew/Caskroom/miniconda/base/envs/lisflood/lib/python3.10/site-packages/lisflood/hydrological_modules/routing.py:235: RuntimeWarning: invalid value encountered in power
+  self.var.ChannelAlpha = (AlpTermChan * (self.var.ChanWettedPerimeterAlpha ** self.var.AlpPow)).astype(float)
+/opt/homebrew/Caskroom/miniconda/base/envs/lisflood/lib/python3.10/site-packages/lisflood/hydrological_modules/routing.py:232: RuntimeWarning: invalid value encountered in power
+  AlpTermChan = (self.var.ChanMan / (np.sqrt(self.var.ChanGrad))) ** self.var.Beta
+/opt/homebrew/Caskroom/miniconda/base/envs/lisflood/lib/python3.10/site-packages/lisflood/hydrological_modules/routing.py:235: RuntimeWarning: invalid value encountered in power
+  self.var.ChannelAlpha = (AlpTermChan * (self.var.ChanWettedPerimeterAlpha ** self.var.AlpPow)).astype(float)
+/opt/homebrew/Caskroom/miniconda/base/envs/lisflood/lib/python3.10/site-packages/lisflood/hydrological_modules/routing.py:232: RuntimeWarning: invalid value encountered in power
+  AlpTermChan = (self.var.ChanMan / (np.sqrt(self.var.ChanGrad))) ** self.var.Beta
+/opt/homebrew/Caskroom/miniconda/base/envs/lisflood/lib/python3.10/site-packages/lisflood/hydrological_modules/routing.py:235: RuntimeWarning: invalid value encountered in power
+  self.var.ChannelAlpha = (AlpTermChan * (self.var.ChanWettedPerimeterAlpha ** self.var.AlpPow)).astype(float)
+/opt/homebrew/Caskroom/miniconda/base/envs/lisflood/lib/python3.10/site-packages/lisflood/hydrological_modules/routing.py:232: RuntimeWarning: invalid value encountered in power
+  AlpTermChan = (self.var.ChanMan / (np.sqrt(self.var.ChanGrad))) ** self.var.Beta
+/opt/homebrew/Caskroom/miniconda/base/envs/lisflood/lib/python3.10/site-packages/lisflood/hydrological_modules/routing.py:235: RuntimeWarning: invalid value encountered in power
+  self.var.ChannelAlpha = (AlpTermChan * (self.var.ChanWettedPerimeterAlpha ** self.var.AlpPow)).astype(float)
+/opt/homebrew/Caskroom/miniconda/base/envs/lisflood/lib/python3.10/site-packages/lisflood/hydrological_modules/routing.py:232: RuntimeWarning: invalid value encountered in power
+  AlpTermChan = (self.var.ChanMan / (np.sqrt(self.var.ChanGrad))) ** self.var.Beta
+/opt/homebrew/Caskroom/miniconda/base/envs/lisflood/lib/python3.10/site-packages/lisflood/hydrological_modules/routing.py:235: RuntimeWarning: invalid value encountered in power
+  self.var.ChannelAlpha = (AlpTermChan * (self.var.ChanWettedPerimeterAlpha ** self.var.AlpPow)).astype(float)
+Generation 0, run 5
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 4
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 3
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 2
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 1
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 5 done. KGE: -1.689
+Generation 0, run 6
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 2 done. KGE: -1.643
+Generation 0, run 9
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 3 done. KGE: -1.511
+Generation 0, run 7
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 4 done. KGE: -1.650
+Generation 0, run 8
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 1 done. KGE: -1.243
+Generation 0, run 10
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 9 done. KGE: -1.578
+Generation 0, run 15
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 6 done. KGE: -1.465
+Generation 0, run 11
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 7 done. KGE: -1.312
+Generation 0, run 12
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 8 done. KGE: -1.492
+Generation 0, run 13
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 10 done. KGE: -0.596
+Generation 0, run 14
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 15 done. KGE: 0.122
+Generation 0, run 16
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 11 done. KGE: -1.610
+Generation 0, run 17
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 13 done. KGE: -1.525
+Generation 0, run 18
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 12 done. KGE: -1.516
+Generation 0, run 19
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 14 done. KGE: -0.293
+Generation 0, run 20
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 16 done. KGE: -1.659
+Generation 0, run 21
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 17 done. KGE: -1.519
+Generation 0, run 22
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 18 done. KGE: -1.586
+Generation 0, run 23
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 19 done. KGE: -1.621
+Generation 0, run 24
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 20 done. KGE: -1.694
+Generation 0, run 25
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 21 done. KGE: -1.495
+Generation 0, run 26
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 22 done. KGE: -1.486
+Generation 0, run 27
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 23 done. KGE: -1.641
+Generation 0, run 28
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 24 done. KGE: -1.467
+Generation 0, run 29
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 25 done. KGE: -1.479
+Generation 0, run 30
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 27 done. KGE: 0.062
+Generation 0, run 31
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 26 done. KGE: -1.557
+Generation 0, run 32
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 28 done. KGE: -1.512
+Generation 0, run 33
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 29 done. KGE: -1.589
+Generation 0, run 34
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 30 done. KGE: -1.586
+Generation 0, run 35
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 31 done. KGE: -1.626
+Generation 0, run 36
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 32 done. KGE: -1.568
+Generation 0, run 37
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 33 done. KGE: 0.095
+Generation 0, run 38
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 34 done. KGE: -0.021
+Generation 0, run 39
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 35 done. KGE: -1.580
+Generation 0, run 40
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 37 done. KGE: -1.548
+Generation 0, run 41
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 36 done. KGE: -1.534
+Generation 0, run 42
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 39 done. KGE: -0.482
+Generation 0, run 44
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 38 done. KGE: -1.609
+Generation 0, run 43
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 40 done. KGE: -1.227
+Generation 0, run 45
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 42 done. KGE: -1.681
+Generation 0, run 46
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 44 done. KGE: -0.619
+Generation 0, run 48
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 41 done. KGE: -1.471
+Generation 0, run 47
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 43 done. KGE: -1.403
+Generation 0, run 49
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 45 done. KGE: -1.549
+Generation 0, run 50
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 48 done. KGE: 0.206
+Generation 0, run 51
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 46 done. KGE: -1.475
+Generation 0, run 52
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 47 done. KGE: -1.509
+Generation 0, run 53
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 49 done. KGE: -1.562
+Generation 0, run 54
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 50 done. KGE: -1.590
+Generation 0, run 55
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 51 done. KGE: -1.620
+Generation 0, run 56
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 53 done. KGE: -0.338
+Generation 0, run 57
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 52 done. KGE: -1.658
+Generation 0, run 58
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 54 done. KGE: -1.589
+Generation 0, run 59
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 55 done. KGE: -1.219
+Generation 0, run 60
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 56 done. KGE: -1.137
+Generation 0, run 61
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 59 done. KGE: 0.122
+Generation 0, run 62
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 58 done. KGE: -1.502
+Generation 0, run 63
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 61 done. KGE: -1.586
+Generation 0, run 64
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 63 done. KGE: -1.376
+Generation 0, run 66
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 62 done. KGE: -1.631
+Generation 0, run 65
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 64 done. KGE: -1.597
+Generation 0, run 67
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 66 done. KGE: -1.512
+Generation 0, run 68
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 65 done. KGE: -1.420
+Generation 0, run 69
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 67 done. KGE: -1.472
+Generation 0, run 70
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 69 done. KGE: -1.577
+Generation 0, run 71
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 68 done. KGE: -1.719
+Generation 0, run 72
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+>> gen: 0, effmax_KGE: 0.206
+Generation 0, run 72 done. KGE: -1.403
+Generation 1, run 3
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 70 done. KGE: -1.538
+Generation 1, run 1
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 60 done. KGE: -0.060
+Generation 1, run 5
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 71 done. KGE: -1.499
+Generation 1, run 2
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 0, run 57 done. KGE: -1.609
+Generation 1, run 4
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 1, run 2 done. KGE: -1.506
+Generation 1, run 8
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 1, run 1 done. KGE: -1.639
+Generation 1, run 7
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 1, run 3 done. KGE: -1.372
+Generation 1, run 6
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 1, run 4 done. KGE: -1.641
+Generation 1, run 9
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+Generation 1, run 5 done. KGE: -1.588
+Generation 1, run 10
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/pr.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type
+WARNING! Wrong calendar type in dataset /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/1/maps/ta.nc, is "standard" and should be "proleptic_gregorian"
+ Please double check your forcing datasets and update them to use the correct calendar type

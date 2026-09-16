@@ -41,7 +41,7 @@ REPO_ROOT        = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 # Path to your watershed boundary file.
 # Supported formats: .shp (with .shx/.dbf/.prj), .gpkg, .geojson
 # Any CRS is accepted — the pipeline reprojects automatically.
-ROI_SHAPEFILE    = os.path.join(REPO_ROOT, "shapefiles", "Watershed.shp")
+ROI_SHAPEFILE    = os.path.join(REPO_ROOT, "shapefiles", "hydrobasins_roi_lev6_4060028560.shp")
 
 # ── Spatial grid ──────────────────────────────────────────────────────────────
 RESOLUTION_M     = 300          # pixel size in metres
@@ -49,7 +49,7 @@ RESOLUTION_M     = 300          # pixel size in metres
 # ── CRS ───────────────────────────────────────────────────────────────────────
 # None  → auto-detect UTM zone from ROI_SHAPEFILE centroid (recommended)
 # str   → override, e.g. "EPSG:32645"  (UTM Zone 45N, Bihar)
-TARGET_CRS       = "EPSG:32643"
+TARGET_CRS       = None         # auto-detect (this ROI is zone 44N / EPSG:32644)
 
 
 # ── Output directories ────────────────────────────────────────────────────────
@@ -69,8 +69,14 @@ DIR_OUT          = os.path.join(REPO_ROOT, "outputs", "cold")  # LISFLOOD cold-r
 DIR_RAW          = os.path.join(BASE_DIR, "raw")
 
 # ── Gauges & sites ────────────────────────────────────────────────────────────
-# Maximum search radius (m) when snapping a coordinate to the nearest channel cell.
-GAUGE_SNAP_DIST_M = 500
+# Maximum search radius (m) when snapping a gauge onto the model's own channel.
+# Was 500 m and, until now, never actually read — make_outlets.py had max_radius=2
+# hardcoded (+/-600 m). That is far too small: the model's D8 network, derived from
+# the 300 m upscaled DEM, sits 2-4 km from the real river here, so every gauge
+# snapped onto hillslope. 5 km is safe ONLY because make_outlets now snaps by
+# matching the gauge's known upstream area (4th column of stations.csv); a radius
+# this wide with the old max-accumulation rule would jump to the neighbouring river.
+GAUGE_SNAP_DIST_M = 5000
 
 # User-specified gauge locations (WGS84). Leave empty to use only the
 # auto-detected outlet gauge.  Format: [("Name", lat_deg, lon_deg), ...]
@@ -83,6 +89,25 @@ GAUGE_LOCATIONS = [
 # Format: [("Name", lat_deg, lon_deg), ...]
 SITE_LOCATIONS = [
 ]
+
+# ── Simulation period ─────────────────────────────────────────────────────────
+# ONE continuous forcing dataset covers all three LISFLOOD runs; the settings XMLs
+# slice it via StepStart/StepEnd. Do not download three separate forcing sets.
+#   prerun      2003-01-01 .. 2015-12-31   (settings/prerun.xml)
+#   cold run    2016-01-01 .. 2018-12-31   (settings/cold_start.xml)
+#   warm run    2019-01-01 .. 2019-12-31   (settings/warm_start.xml)
+# Each run starts the day after the previous one ends; the cold run reads the
+# prerun's end maps and the warm run reads the cold run's (timestepInit = the
+# previous StepEnd). 2003 is a deliberate choice, not a data floor (CHIRPS reaches
+# back to 1981): a 13-year prerun is ample to equilibrate the lower groundwater
+# zone, and starting in 2003 means MODIS LAI (from 2002-07-04) covers the ENTIRE
+# simulation period.
+# FORCING_END is 2020-12-31: the study period runs to 2020, and capping the forcing
+# there keeps the run windows (prerun / calibration / validation) inside the data
+# rather than relying on the settings XMLs to slice a longer span. Raise it if a
+# later validation period is wanted — CHIRPS and ERA5-Land both run past 2024.
+FORCING_START    = "2003-01-01"
+FORCING_END      = "2020-12-31"
 
 # ── GEE project ───────────────────────────────────────────────────────────────
 GEE_PROJECT      = "gssha-480613"
@@ -100,9 +125,12 @@ SOIL_DEPTHS_L1_WEIGHTS = [5,        10,        15,         30]      # cm
 SOIL_DEPTHS_L2         = ["60-100cm", "100-200cm"]
 SOIL_DEPTHS_L2_WEIGHTS = [40,          100]                         # cm
 
-# ── LISFLOOD soildep1 / soildep2 — derived from the SoilGrids layer thicknesses
-# so that the depth used for water storage exactly matches the depth over which
-# the hydraulic properties (ThetaSat, Ksat, …) were averaged.
+# ── LISFLOOD soildep1 / soildep2 — SINGLE SOURCE OF TRUTH for soil-storage depth.
+# Every script that needs a soil depth reads these (lisflood_lulc_cover builds the
+# soildep1/soildep2 maps from them). They are derived from the SoilGrids layer
+# thicknesses so that the depth used for water storage (w_s = ThetaSat * depth)
+# exactly matches the depth over which the hydraulic properties (ThetaSat, Ksat, …)
+# were averaged in lisflood_soil_preprocessing. Do NOT hardcode depths elsewhere.
 #   Layer 1 total: sum([5,10,15,30]) cm  = 60 cm  = 600 mm
 #   Layer 2 total: sum([40,100])     cm  = 140 cm = 1400 mm
 SOIL_DEPTH_L1_MM = sum(SOIL_DEPTHS_L1_WEIGHTS) * 10   # 600 mm
@@ -125,6 +153,21 @@ NODATA_INT    = -9999
 # =============================================================================
 #  CRS AUTO-DETECTION  &  BASIN GEOMETRY HELPERS
 # =============================================================================
+
+def resolve_crs():
+    """Return the projected CRS the grid is built in.
+
+    TARGET_CRS wins when set. When it is None the docstring at the top of this file
+    promises auto-detection, so derive the UTM zone from the ROI centroid rather than
+    silently leaving the ROI in its native (usually geographic) CRS -- rasterising
+    degrees at a metre resolution collapses the grid to a single cell.
+    """
+    if TARGET_CRS:
+        return TARGET_CRS
+    lat, lon = resolve_centroid()
+    zone = int((lon + 180) // 6) + 1
+    return f"EPSG:{(32600 if lat >= 0 else 32700) + zone}"
+
 
 def resolve_centroid():
     """

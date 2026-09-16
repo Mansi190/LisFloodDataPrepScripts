@@ -1,0 +1,57 @@
+# lisflood-calibration settings -- targets liscal 1.1.0 (tag 141e176).
+# Key names taken from liscal/config.py, bin/CAL_*.py and docs/3_data/index.md at
+# that tag. NOT from the repo README or the published docs site: both still
+# describe the pre-1.0 Python-2.7 workflow (Root / Qgis / Qtss / WarmupDays).
+# Previous versions kept as settings_calibration.v1.0.0.bak and .pre1.0.bak
+# Dates are day-first: %d/%m/%Y %H:%M
+
+[Main]
+# Span of the meteo forcing in inputs/meteo (pipeline_config.FORCING_START/END).
+forcing_start = 01/01/2003 00:00
+forcing_end = 31/12/2020 00:00
+# minutes; liscal accepts only 360 (6-hourly) or 1440 (daily). Our runs are daily.
+timestep = 1440
+
+# LISFLOOD prerun spinning up the slow storages ahead of each calibration run.
+# Matches the split in settings/prerun.xml (2003-2015).
+prerun_start = 01/01/2003 00:00
+prerun_end = 31/12/2005 00:00
+prerun_timestep = 1440
+
+fast_debug = 1
+min_obs_years = 4
+
+[Stations]
+# BOTH of these are WRITTEN by the tool, not supplied by us:
+#   stations_data  <- output of CAL_1_FILTER_STATIONS.py
+#   stations_links <- output of CAL_2_HYDRO_DEPENDENCIES.py
+stations_data = /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/stations_data.csv
+stations_links = /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/stations_links.csv
+observed_discharges = /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/observed_discharges.csv
+
+[Path]
+param_ranges = /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/param_ranges.csv
+subcatchment_path = /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments
+summary_path = /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/summary
+# written by CAL_2_HYDRO_DEPENDENCIES.py, read by CAL_3_MASK.py
+gauges_path = /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/gauges.map
+interstation_regions = /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/interstation_regions.map
+inlets = /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/catchments/inlets.map
+# read by CAL_3_MASK.py
+Temp = /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/temp
+# read only by CAL_6-7_PERFORM_CAL_PBS.py, the PBS dispatcher (unusable on macOS;
+# call CAL_6_CALIBRATION.py per station instead). Kept for completeness.
+PYTHONCMD = /opt/homebrew/Caskroom/miniconda/base/envs/lisflood-pcraster/bin/python
+
+[Templates]
+LISFLOODSettings = /Users/mansi/Documents/LisFlood/LisFloodDataPrepScripts/Calibration/templates/settings_lisflood.xml
+
+[DEAP]
+numCPUs = 10
+min_gen = 6
+max_gen = 16
+mu = 18
+lambda_ = 36
+pop = 72
+gen_offset = 3
+effmax_tol = 0.003

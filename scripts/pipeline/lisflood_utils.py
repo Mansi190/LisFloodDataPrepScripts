@@ -5,6 +5,7 @@ Import from here rather than copy-pasting into each script.
 
 import os
 import sys
+import math
 import gzip
 import shutil
 import subprocess
@@ -179,6 +180,66 @@ def reproject_to_grid(src_array, src_transform, src_crs, like,
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+#  NATIVE-RESOLUTION EARTH ENGINE EXPORTS
+# ─────────────────────────────────────────────────────────────────────────────
+# Source archives (CHIRPS 0.05 deg, ERA5-Land 0.1 deg) are far coarser than the
+# 300 m model grid. Asking Earth Engine to reproject to 300 m server-side ships
+# hundreds of identical copies of every real value -- ~690x for ERA5-Land over a
+# basin this size, ~190x for CHIRPS -- which is pure transfer and disk cost, and
+# turns a job of ~110 export requests into one of ~3650.
+#
+# Instead: export on the collection's OWN grid (pass crs + crs_transform, and no
+# scale, so EE resamples nothing at all), then resample once, locally, with
+# reproject_to_grid. Note reduceResolution is the wrong tool in this direction --
+# it averages FINE pixels into COARSE ones, and here the source is already the
+# coarser of the two, so it does nothing while .reproject() does a plain
+# nearest-neighbour blow-up.
+
+def native_grid(collection, band):
+    """Return (crs, transform) of an ImageCollection's own pixel grid.
+
+    Feed these straight to geemap.ee_export_image as crs= and crs_transform=
+    (with NO scale=) to get an export that Earth Engine has not resampled.
+    e.g. ERA5-Land -> ('EPSG:4326', [0.1, 0, -180.05, 0, -0.1, 90.05])
+         CHIRPS    -> ('EPSG:4326', [0.05, 0, -180, 0, -0.05, 50])
+    """
+    proj = collection.first().select(band).projection().getInfo()
+    return proj["crs"], list(proj["transform"])
+
+
+def native_region(info, native_transform, ee, buffer_pixels=3):
+    """Lat/lon export window covering `info`'s grid plus a margin of native pixels.
+
+    Returns (region, nx, ny) where nx/ny are the approximate native pixel counts,
+    used to size download chunks.
+
+    The model grid is projected (UTM metres) while the export is geographic, so
+    the corners are transformed and the bbox padded. The padding is not cosmetic:
+    resampling an edge target pixel needs source cells beyond the edge, or the
+    outermost rows and columns of the model grid come back empty.
+    """
+    import math
+    from pyproj import Transformer
+
+    t = info.transform
+    xmin, ymax = t.c, t.f
+    xmax, ymin = xmin + t.a * info.width, ymax + t.e * info.height
+
+    tr = Transformer.from_crs(str(info.crs), "EPSG:4326", always_xy=True)
+    lons, lats = tr.transform([xmin, xmax, xmin, xmax], [ymin, ymin, ymax, ymax])
+
+    px, py = abs(native_transform[0]), abs(native_transform[4])
+    lon_min, lon_max = min(lons) - buffer_pixels * px, max(lons) + buffer_pixels * px
+    lat_min, lat_max = min(lats) - buffer_pixels * py, max(lats) + buffer_pixels * py
+
+    region = ee.Geometry.Rectangle([lon_min, lat_min, lon_max, lat_max],
+                                   proj="EPSG:4326", geodesic=False)
+    nx = int(math.ceil((lon_max - lon_min) / px)) + 1
+    ny = int(math.ceil((lat_max - lat_min) / py)) + 1
+    return region, nx, ny
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 #  GDAL PCRaster CONVERSION
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -317,3 +378,105 @@ def merge_tiles(paths, out):
     with rasterio.open(out, "w", **profile) as dst:
         dst.write(mosaic)
     return out
+
+
+def ee_export_tiled(image, filename, scale, crs, region, target_mb=25.0,
+                    max_attempts=5):
+    """Download an Earth Engine image, tiling the request until it succeeds.
+
+    TWO different server limits bite here, and they need different tile counts:
+
+      * download size  -- getDownloadURL caps a response at ~32-50 MB.
+      * reprojection   -- reduceResolution().reproject() from a fine native asset
+                          (e.g. 10 m LULC) makes EE materialise the NATIVE grid over
+                          the whole region; past ~5e7 px it returns "Reprojection
+                          output too large", regardless of how small the output is.
+
+    Worse, geemap.ee_export_image SWALLOWS both failures: it logs "An error occurred
+    while downloading" and returns normally, leaving no file, so the caller only finds
+    out when rasterio cannot open the result. We therefore treat "no file" as an error,
+    seed the tile count from both limits, and DOUBLE it on failure rather than trying to
+    predict every server-side rule.
+    """
+    import ee
+    import geemap
+    import rasterio
+    from rasterio.merge import merge as rio_merge
+
+    n_bands = int(image.bandNames().size().getInfo())
+    area_m2 = float(region.area(1).getInfo())
+
+    # seed 1: output payload
+    out_mb = (area_m2 / (scale ** 2)) * 4 * n_bands / 1e6
+    n = max(1, int(math.ceil(math.sqrt(out_mb / target_mb))))
+
+    # seed 2: native grid the server must build to reproject
+    try:
+        native = float(image.projection().nominalScale().getInfo())
+    except Exception:
+        native = scale
+    if 0 < native < scale:
+        native_px = area_m2 / (native ** 2)
+        n = max(n, int(math.ceil(math.sqrt(native_px / 5e7))))
+
+    log(f"  export {out_mb:.0f} MB out / {n_bands} band(s) / native {native:.0f} m "
+        f"-> starting at {n}x{n} tiles")
+
+    def _export(img, path, geom):
+        geemap.ee_export_image(img, filename=path, scale=scale, crs=str(crs),
+                               region=geom, file_per_band=False)
+        if not os.path.exists(path):
+            raise RuntimeError(f"Earth Engine export produced no file: {path}")
+
+    base, ext = os.path.splitext(filename)
+
+    for attempt in range(max_attempts):
+        tiles = []
+        try:
+            if n == 1:
+                _export(image, filename, region)
+                return filename
+
+            coords = region.bounds(1, str(crs)).coordinates().getInfo()[0]
+            xs = [c[0] for c in coords]
+            ys = [c[1] for c in coords]
+            x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
+            dx, dy = (x1 - x0) / n, (y1 - y0) / n
+
+            for i in range(n):
+                for j in range(n):
+                    tile = f"{base}_t{i}_{j}{ext}"
+                    if not os.path.exists(tile):
+                        sub = ee.Geometry.Rectangle(
+                            [x0 + i * dx, y0 + j * dy,
+                             x0 + (i + 1) * dx, y0 + (j + 1) * dy],
+                            proj=str(crs), geodesic=False)
+                        _export(image, tile, sub)
+                    tiles.append(tile)
+                    log(f"    tile {len(tiles)}/{n * n}")
+
+            srcs = [rasterio.open(t) for t in tiles]
+            mosaic, transform = rio_merge(srcs)
+            profile = srcs[0].profile
+            profile.update(height=mosaic.shape[1], width=mosaic.shape[2],
+                           transform=transform, count=mosaic.shape[0])
+            with rasterio.open(filename, "w", **profile) as dst:
+                dst.write(mosaic)
+            for src in srcs:
+                src.close()
+            for t in tiles:
+                os.remove(t)
+            log(f"  mosaicked {len(tiles)} tiles -> {os.path.basename(filename)} "
+                f"({mosaic.shape[2]}x{mosaic.shape[1]})")
+            return filename
+
+        except RuntimeError as e:
+            for t in tiles:
+                if os.path.exists(t):
+                    os.remove(t)
+            if attempt == max_attempts - 1:
+                raise
+            n *= 2
+            log(f"  export failed ({e}); retrying at {n}x{n} tiles", "WARN")
+
+    raise RuntimeError(f"tiled export failed after {max_attempts} attempts: {filename}")

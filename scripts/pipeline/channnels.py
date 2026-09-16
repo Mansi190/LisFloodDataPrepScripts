@@ -16,7 +16,7 @@ if not hasattr(np, 'in1d'):
 warnings.filterwarnings("ignore")
 
 import pipeline_config as _cfg
-from lisflood_utils import (GridInfo, log, check_imports, make_dirs,
+from lisflood_utils import (GridInfo, log, check_imports, make_dirs, ee_export_tiled,
                             gdal_convert_netcdf, load_grid, save_aligned, reproject_to_grid,
                             init_ee)
 AREA_TIF        = _cfg.AREA_TIF
@@ -210,14 +210,7 @@ def compute_and_download_gee_channels(info):
     raw_tif = os.path.join(raw_dir, "channels_raw_gee.tif")
     if not os.path.exists(raw_tif):
         log(f"Downloading GEE channel data to {raw_tif}...")
-        geemap.ee_export_image(
-            combined,
-            filename=raw_tif,
-            scale=RESOLUTION_M,
-            crs=str(info.crs),
-            region=region,
-            file_per_band=False
-        )
+        ee_export_tiled(combined, raw_tif, RESOLUTION_M, info.crs, region)
     else:
         log(f"Raw GEE data already exists: {raw_tif}")
         
