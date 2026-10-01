@@ -19,7 +19,7 @@ warnings.filterwarnings("ignore")
 import pipeline_config as _cfg
 from lisflood_utils import (GridInfo, log, check_imports, make_dirs,
                             gdal_convert_netcdf, load_grid, save_aligned, reproject_to_grid,
-                            init_ee)
+                            init_ee, condition_dem)
 
 AREA_TIF        = _cfg.AREA_TIF
 OUTPUT_DIR      = _cfg.DIR_MAPS
@@ -106,12 +106,9 @@ def compute_and_download_gee_topo(info):
     xmin, ymax = t.c, t.f
     xmax, ymin = xmin + t.a * info.width, ymax + t.e * info.height
 
+    # buf is used below to build the per-tile rectangles; the whole-region Geometry that
+    # used to be built here was never passed to anything.
     buf = 2000
-    region = ee.Geometry.Rectangle(
-        [xmin - buf, ymin - buf, xmax + buf, ymax + buf], 
-        proj=str(info.crs), 
-        geodesic=False
-    )
 
     dem = ee.Image("USGS/SRTMGL1_003")
     
@@ -302,24 +299,10 @@ def process_local_topo(raw_tif, mask_arr, info, area_tif_path):
     tif_paths = {}
     maps_dir = OUTPUT_DIR
     
-    try:
-        from pysheds.grid import Grid
-    except ImportError:
-        log("Install pysheds: pip install pysheds", "ERROR")
-        sys.exit(1)
-
-    log("  Filling pits, depressions, and resolving flats on 30m DEM via pysheds...")
-    grid = Grid.from_raster(raw_tif)
-    dem_30m = grid.read_raster(raw_tif)
-    
-    dem_30m = grid.fill_pits(dem_30m)
-    dem_30m = grid.fill_depressions(dem_30m)
-    dem_30m = grid.resolve_flats(dem_30m)
-    
-    log("  Calculating 30m flow direction and accumulation...")
-    dirmap = (64, 128, 1, 2, 4, 8, 16, 32)
-    fdir_30m = grid.flowdir(dem_30m, dirmap=dirmap)
-    acc_30m = grid.accumulation(fdir_30m)
+    # Conditioning + D8 live in lisflood_utils.condition_dem so make_inflow.py, which
+    # builds the same network over a wider window, runs identical steps.
+    log("  Filling pits, depressions, resolving flats, and computing D8 via pysheds...")
+    fdir_30m, acc_30m, dem_30m = condition_dem(raw_tif)
     
     dem_30m_arr = dem_30m.astype(np.float32)
     
@@ -476,7 +459,7 @@ def main():
     ldd_path, ldd_masked = compute_ldd_snapped(results['fdir_30m'], results['acc_30m'], mask_arr, area_tif_path)
     tif_paths['ldd'] = ldd_path
     
-    nc_paths = convert_to_netcdf(tif_paths, area_tif_path)
+    convert_to_netcdf(tif_paths, area_tif_path)
     
     # Exclude 30m outputs from 300m alignment validation
     val_paths = {k: v for k, v in tif_paths.items() if not k.endswith('_30m')}

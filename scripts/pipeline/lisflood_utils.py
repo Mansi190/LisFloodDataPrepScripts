@@ -179,6 +179,30 @@ def reproject_to_grid(src_array, src_transform, src_crs, like,
     return dst
 
 
+def condition_dem(dem_tif, dirmap=(64, 128, 1, 2, 4, 8, 16, 32)):
+    """Hydrologically condition a DEM, then derive D8. Returns (fdir, acc, dem).
+
+    The four pysheds steps in the order that matters: fill_pits (single-cell dips) ->
+    fill_depressions (multi-cell sinks) -> resolve_flats (ties on flat ground) -> flowdir.
+    Skip any and D8 leaves cells with no downstream neighbour, so accumulation stops short
+    and a downstream trace dies there.
+
+    Shared so the two jobs that need a flow network cannot drift apart:
+    topographyMapsScript.py (the model's own LDD, ROI only) and make_inflow.py (a network
+    spanning the ROI plus an upstream sub-basin). Returns pysheds Raster objects, not bare
+    arrays, because callers rely on their nodata handling.
+    """
+    from pysheds.grid import Grid
+    grid = Grid.from_raster(dem_tif)
+    dem = grid.read_raster(dem_tif)
+    dem = grid.fill_pits(dem)
+    dem = grid.fill_depressions(dem)
+    dem = grid.resolve_flats(dem)
+    fdir = grid.flowdir(dem, dirmap=dirmap)
+    acc = grid.accumulation(fdir, dirmap=dirmap)
+    return fdir, acc, dem
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 #  NATIVE-RESOLUTION EARTH ENGINE EXPORTS
 # ─────────────────────────────────────────────────────────────────────────────
@@ -276,7 +300,6 @@ def gdal_convert_netcdf(tif_path, nc_path):
     try:
         import xarray as xr
         import rasterio
-        import os
         with rasterio.open(tif_path) as src:
             data = src.read(1)
             nodata = src.nodata if src.nodata is not None else -9999

@@ -41,7 +41,7 @@ REPO_ROOT        = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 # Path to your watershed boundary file.
 # Supported formats: .shp (with .shx/.dbf/.prj), .gpkg, .geojson
 # Any CRS is accepted — the pipeline reprojects automatically.
-ROI_SHAPEFILE    = os.path.join(REPO_ROOT, "shapefiles", "hydrobasins_roi_lev6_4060028560.shp")
+ROI_SHAPEFILE    = os.path.join(REPO_ROOT, "shapefiles", "hydrobasins_roi_lev6_4061001260.shp")
 
 # ── Spatial grid ──────────────────────────────────────────────────────────────
 RESOLUTION_M     = 300          # pixel size in metres
@@ -49,7 +49,7 @@ RESOLUTION_M     = 300          # pixel size in metres
 # ── CRS ───────────────────────────────────────────────────────────────────────
 # None  → auto-detect UTM zone from ROI_SHAPEFILE centroid (recommended)
 # str   → override, e.g. "EPSG:32645"  (UTM Zone 45N, Bihar)
-TARGET_CRS       = None         # auto-detect (this ROI is zone 44N / EPSG:32644)
+TARGET_CRS       = None         # auto-detect (derive the zone from the restored basin)
 
 
 # ── Output directories ────────────────────────────────────────────────────────

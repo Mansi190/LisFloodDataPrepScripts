@@ -242,7 +242,7 @@
                 </comment>
             </textvar>
 
-            <textvar name="PathInflow" value="$(PathRoot)/maps">
+            <textvar name="PathInflow" value="$(PathRoot)/inflow">
                 <comment>
                     Inflow path
                 </comment>
@@ -1544,14 +1544,14 @@ threshold value below which there is no outflow to the channel
                     **************************************************************
                 </comment>
 
-                <textvar name="InflowPoints" value="$(PathInflow)/asta_po_outlets.nc">
+                <textvar name="InflowPoints" value="$(PathInflow)/inflow_cut.map">
                     <comment>
                         OPTIONAL: nominal map with locations of (measured)
                         inflow hydrographs [cu m / s]
                     </comment>
                 </textvar>
 
-                <textvar name="QInTS" value="$(PathInflow)/asta_po.tss">
+                <textvar name="QInTS" value="$(PathInflow)/chanq.tss">
                     <comment>
                         OPTIONAL: observed or simulated input hydrographs as
                         time series [cu m / s]

@@ -1,0 +1,37 @@
+# Local worktrees and Python caches
+.claude/worktrees/
+__pycache__/
+*.py[cod]
+.DS_Store
+
+# Generated calibration inputs, runs, diagnostics, and caches
+/Calibration/catchments/
+/Calibration/logs/
+/Calibration/temp/
+/Calibration/summary/
+/Calibration/grrr_selected_*.csv
+/Calibration/gauge_placement_audit.csv
+/Calibration/preparation_manifest.json
+/Calibration/validation_report.json
+*.log
+*.pid
+*.bak
+
+# Large scientific datasets and generated figures (keep locally)
+*.nc
+*.map
+*.map.aux.xml
+*.tss
+*.tif
+*.tiff
+*.png
+*.pdf
+*.shp
+*.shx
+*.dbf
+*.cpg
+*.prj
+*.fix
+
+# Archived model data; source files can be added explicitly when needed
+/archive/
